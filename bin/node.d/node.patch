@@ -1,0 +1,490 @@
+diff --git a/lib/internal/module.js b/lib/internal/module.js
+index e19b11c7a7..dcd1a9257c 100644
+--- a/lib/internal/module.js
++++ b/lib/internal/module.js
+@@ -84,9 +84,10 @@ function stripShebang(content) {
+ 
+ const builtinLibs = [
+   'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'crypto',
+-  'dgram', 'dns', 'domain', 'events', 'fs', 'http', 'https', 'net',
+-  'os', 'path', 'perf_hooks', 'punycode', 'querystring', 'readline', 'repl',
+-  'stream', 'string_decoder', 'tls', 'tty', 'url', 'util', 'v8', 'vm', 'zlib'
++  'dgram', 'dns', 'domain', 'events', 'fs', 'http', 'https', 'module-keys',
++  'net', 'os', 'path', 'perf_hooks', 'punycode', 'querystring', 'readline',
++  'repl', 'stream', 'string_decoder', 'tls', 'tty', 'url', 'util', 'v8', 'vm',
++  'zlib'
+ ];
+ 
+ const { exposeHTTP2 } = process.binding('config');
+diff --git a/lib/module-keys.js b/lib/module-keys.js
+new file mode 100644
+index 0000000000..07b2356150
+--- /dev/null
++++ b/lib/module-keys.js
+@@ -0,0 +1,264 @@
++'use strict';
++
++/**
++ * @fileoverview
++ * Allow modules to establish secure channels to other modules.
++ * This is a general purpose building block that aims to enable:
++ * - product teams to grant more privilege to dependencies they
++ *   know are compatible with their security needs than to the
++ *   bulk of dependencies.
++ * - allow conveying sensitive data (secrets, passwords, PII) from
++ *   one part of a system to another that are opaque to cross-cutting
++ *   concerns like logging.
++ * - allow modules that provide APIs that are unsafe when not used
++ *   very carefully to interact closely with carefully vetted modules
++ *   but failsafe when used by general purpose code.
++ */
++
++// Capture some globals so we can rely on them later
++const {
++  create, defineProperties, defineProperty, freeze, getOwnPropertyNames,
++  getPrototypeOf, prototype: ObjectPrototype,
++} = Object;
++const { apply: fApply, call: fCall } = Function.prototype;
++
++/**
++ * Called before attacker-controlled code on an internal collections,
++ * copies prototype members onto the instance directly, so that later
++ * changes to prototypes cannot expose collection internals.
++ * @param {!T} collection
++ * @return {!T} collection
++ * @template T
++ */
++function selfContained(collection) {
++  const proto = getPrototypeOf(collection);
++  /* istanbul ignore if */
++  if (!proto || getPrototypeOf(proto) !== ObjectPrototype) {
++    // The loop below is insufficient.
++    throw new Error();
++  }
++  for (const key of getOwnPropertyNames(proto)) {
++    defineProperty(collection, key, { value: collection[key] });
++  }
++  return collection;
++}
++
++/**
++ * Maps opaque boxes to box data records.
++ *
++ * @type {!WeakMap<!Box,BoxPrivates>}
++ */
++const boxes = selfContained(new WeakMap());
++
++/**
++ * A set of all public keys.
++ *
++ * @type {!WeakSet<!PublicKey>}
++ */
++const publicKeys = selfContained(new WeakSet());
++
++/**
++ * True iff the given function is in fact a public key.
++ *
++ * Public keys are represented as functions that return true
++ * iff called during the execution of their matching private key.
++ *
++ * @type {!function(*):boolean}
++ */
++const isPublicKey = publicKeys.has.bind(publicKeys);
++
++/**
++ * Symbol used to attach public keys to CommonJS exports.
++ */
++const publicKeySymbol = Symbol('publicKey');
++
++/** An opaque token used to represent a boxed value in transit. */
++class Box {
++  toString() { // eslint-disable-line class-methods-use-this
++    return '[Box]';
++  }
++}
++
++/**
++ * Space for collaboration between the private and public
++ * halves of a public/private key pair.
++ */
++let hidden;
++
++/**
++ * Creates a bundle that should be available as a local variable to module code.
++ */
++function makeModuleKeys(moduleIdentifier) {
++  // Allocate a public/private key pair.
++  function privateKey(fun) {
++    const previous = hidden;
++
++    hidden = privateKey;
++    try {
++      return fun();
++    } finally {
++      hidden = previous;
++    }
++  }
++  function publicKey() {
++    return hidden === privateKey;
++  }
++  publicKeys.add(publicKey);
++
++  // Allow a private key to be used in lieu of the pair.
++  defineProperty(
++    privateKey, 'publicKey', { value: publicKey, enumerable: true });
++
++  // We attach a module identifier to the public key to enable
++  // whitelisting based on strings in a configuration without having
++  // to load modules before storing their public key in a set.
++  defineProperties(
++    publicKey,
++    {
++      moduleIdentifier: { value: `${moduleIdentifier}`, enumerable: true },
++      call: { value: fCall, enumerable: true },
++      apply: { value: fApply, enumerable: true },
++    });
++
++  /**
++   * Wraps a value in a box so that only an approved
++   * opener may unbox it.
++   *
++   * @param {*} value the value that will be given to
++   *    an approved unboxer.
++   * @param {!function(function():boolean):boolean} mayOpen
++   *    receives the public key of the opener.
++   *    Should return `true` to allow.
++   *    This will be called in the context of the opener's
++   *    private key, so the public key should also return true
++   *    called with no arguments.
++   * @return {!Box} a box that is opaque to any receivers that cannot
++   *    unbox it.
++   */
++  function box(value, mayOpen) {
++    if (typeof mayOpen !== 'function') {
++      throw new TypeError(`Expected function not ${mayOpen}`);
++    }
++    // Allocate an opaque token
++    const newBox = new Box();
++    boxes.set(
++      newBox,
++      freeze({ boxerPriv: privateKey, boxerPub: publicKey, value, mayOpen }));
++    return newBox;
++  }
++
++  /**
++   * Tries to open a box.
++   *
++   * @param {*} box the box to unbox.
++   * @param {?function(function():boolean):boolean} ifFrom
++   *    if the box may be opened by this unboxer's owner,
++   *    then ifFrom receives the publicKey of the box creator.
++   *    It should return true to allow unboxing to proceed.
++   * @param {*} fallback a value to substitute if unboxing failed.
++   *    Defaults to undefined.
++   * @return {*} the value if unboxing is allowed or fallback otherwise.
++   */
++  function unbox(box, ifFrom, fallback) { // eslint-disable-line no-shadow
++    if (ifFrom == null) { // eslint-disable-line
++      ifFrom = () => true;
++    }
++    if (typeof ifFrom !== 'function') {
++      throw new TypeError(`Expected function not ${ifFrom}`);
++    }
++    const boxData = boxes.get(box);
++    if (!boxData) {
++      return fallback;
++    }
++    const { boxerPriv, boxerPub, value, mayOpen } = boxData;
++    // Require mutual consent
++    // TODO: Is this the object identity equivalent of an
++    // out-of-order verify/decrypt fault?
++    // http://world.std.com/~dtd/sign_encrypt/sign_encrypt7.html
++    return (privateKey(() => mayOpen(publicKey)) === true &&
++            boxerPriv(() => ifFrom(boxerPub)) === true) ?
++      value :
++      fallback;
++  }
++
++  const neverBoxed = {};
++  /**
++   * Like unbox but raises an exception if unboxing fails.
++   * @param {*} box the box to unbox.
++   * @param {?function(function():boolean):boolean} ifFrom
++   *    if the box may be opened by this unboxer's owner,
++   *    then ifFrom receives the publicKey of the box creator.
++   *    It should return true to allow unboxing to proceed.
++   * @return {*} the value if unboxing is allowed or fallback otherwise.
++   */
++  function unboxStrict(box, ifFrom) { // eslint-disable-line no-shadow
++    const result = unbox(box, ifFrom, neverBoxed);
++    if (result === neverBoxed) {
++      throw new Error('Could not unbox');
++    }
++    return result;
++  }
++
++  return defineProperties(
++    create(null),
++    {
++      // These close over private keys, so do not leak them.
++      box: { value: box, enumerable: true },
++      unbox: { value: unbox, enumerable: true },
++      unboxStrict: { value: unboxStrict, enumerable: true },
++      privateKey: { value: privateKey, enumerable: true },
++      isPublicKey: { value: isPublicKey, enumerable: true },
++
++      // Modules may allow access to this, perhaps via module object.
++      publicKey: { value: publicKey, enumerable: true },
++      [publicKeySymbol]: { value: publicKey, enumerable: true },
++    });
++}
++
++// CommonJS specific
++const { publicKey: myPublicKey } = makeModuleKeys('module-keys');
++
++module.exports = freeze(defineProperties(
++  create(null),
++  {
++    Box: { value: Box, enumerable: true },
++    makeModuleKeys: { value: makeModuleKeys, enumerable: true },
++    isPublicKey: { value: isPublicKey, enumerable: true },
++    publicKeySymbol: { value: publicKeySymbol, enumerable: true },
++
++    // The public key for this module.  Exported for consistency.
++    publicKey: { value: myPublicKey },
++    [publicKeySymbol]: { value: myPublicKey },
++  }));
++
++// Prevent private key gathering via replacement.
++for (const [ propertyName, descriptor ]
++  of Object.entries(Object.getOwnPropertyDescriptors(module))) {
++  /* istanbul ignore if */
++  if (!descriptor.configurable) {
++    continue;
++  }
++  let tamperProofDescriptor = descriptor;
++  if (propertyName === 'loaded') {
++    // I know of no vulnerability if this is not monotonic, but
++    // just to be safe we make it impossible to assign a falsey
++    // value after a truthy one has been assigned.
++    let value = descriptor.value;
++    tamperProofDescriptor = {
++      set(x) {
++        if (value && !x) {
++          throw new Error();
++        }
++        value = !!x;
++      },
++      get() {
++        return value;
++      },
++    };
++  } else {
++    tamperProofDescriptor.writable = propertyName === 'loading';
++    tamperProofDescriptor.configurable = false;
++  }
++  delete module[propertyName];
++  defineProperty(module, propertyName, tamperProofDescriptor);
++}
+diff --git a/lib/module.js b/lib/module.js
+index ef5b3fe4c3..699498cd26 100644
+--- a/lib/module.js
++++ b/lib/module.js
+@@ -44,6 +44,10 @@ const ModuleJob = require('internal/loader/ModuleJob');
+ const { createDynamicModule } = require('internal/loader/ModuleWrap');
+ let ESMLoader;
+ 
++const modulekeys = require('module-keys');
++const { apply } = Reflect;
++const { defineProperties, hasOwnProperty } = Object;
++
+ function stat(filename) {
+   filename = path._makeLong(filename);
+   const cache = stat.cache;
+@@ -571,11 +575,34 @@ Module.prototype.load = function(filename) {
+ };
+ 
+ 
++var requireModuleHook;
++
+ // Loads a module at the given file path. Returns that module's
+ // `exports` property.
+ Module.prototype.require = function(path) {
+   assert(path, 'missing path');
+   assert(typeof path === 'string', 'path must be a string');
++
++  if (requireModuleHook === undefined) {  // On first module load.
++    requireModuleHook = null;  // Do not invoke bootstrap to find the hook.
++    var hookid = process.binding('config').cjsUserLoader;
++    if (hookid && typeof hookid === 'string') {
++      var hook = this.require(hookid);
++      if (typeof hook === 'function') {
++        requireModuleHook = hook;
++      }
++    }
++  }
++
++  if (typeof requireModuleHook === 'function') {
++    path = requireModuleHook(
++      this.filename, this.id, path,
++      (req, opts) => Module._resolveFilename(req, this, false, opts));
++
++    assert(path, 'missing path from hook');
++    assert(typeof path === 'string', 'path from hook must be a string');
++  }
++
+   return Module._load(path, this, /* isMain */ false);
+ };
+ 
+@@ -625,6 +652,26 @@ Module.prototype._compile = function(content, filename) {
+   }
+   var dirname = path.dirname(filename);
+   var require = internalModule.makeRequireFunction(this);
++
++  var keys = modulekeys.makeModuleKeys(this.id);
++  require.keys = keys;
++  defineProperties(
++    this.exports,
++    {
++      publicKey: {
++        value: keys.publicKey,
++        writable: true,
++        configurable: true
++        // Not enumerable for backwards compatibility
++      },
++      [modulekeys.publicKeySymbol]: {
++        value: keys.publicKey,
++        writable: true,
++        configurable: true
++        // Not enumerable for backwards compatibility
++      },
++    });
++
+   var depth = internalModule.requireDepth;
+   if (depth === 0) stat.cache = new Map();
+   var result;
+@@ -636,6 +683,27 @@ Module.prototype._compile = function(content, filename) {
+                                   filename, dirname);
+   }
+   if (depth === 0) stat.cache = null;
++  var exports = this.exports;
++  if (exports &&
++      (typeof exports === 'object' || typeof exports === 'function')) {
++    function addKeyBack(keyKey) {
++      if (!apply(hasOwnProperty, exports, [ keyKey ])) {
++        try {
++          defineProperties(
++            exports,
++            {
++              [keyKey]: {
++                value: keys.publicKey
++              }
++            });
++        } catch (exc) {
++          // ok if exports are frozen
++        }
++      }
++    }
++    addKeyBack('publicKey');
++    addKeyBack(modulekeys.publicKeySymbol);
++  }
+   return result;
+ };
+ 
+diff --git a/node.gyp b/node.gyp
+index acaf822ea8..ac602f6e1f 100644
+--- a/node.gyp
++++ b/node.gyp
+@@ -35,6 +35,7 @@
+       'lib/dns.js',
+       'lib/domain.js',
+       'lib/events.js',
++      'lib/module-keys.js',
+       'lib/fs.js',
+       'lib/http.js',
+       'lib/http2.js',
+diff --git a/src/node.cc b/src/node.cc
+index e6e3e02c98..11dfb1d15d 100644
+--- a/src/node.cc
++++ b/src/node.cc
+@@ -234,6 +234,11 @@ bool config_experimental_modules = false;
+ // that is used by lib/internal/bootstrap_node.js
+ std::string config_userland_loader;  // NOLINT(runtime/string)
+ 
++// Set in node.cc by ParseArgs when --cjs-loader is used.
++// Used in node_config.cc to set a constant on process.binding('config')
++// that is used by lib/internal/bootstrap/node.js
++std::string config_cjs_userland_loader;  // NOLINT(runtime/string)
++
+ // Set by ParseArgs when --pending-deprecation or NODE_PENDING_DEPRECATION
+ // is used.
+ bool config_pending_deprecation = false;
+@@ -3993,6 +3998,7 @@ static void CheckIfAllowedInEnv(const char* exe, bool is_env,
+     "--napi-modules",
+     "--expose-http2",
+     "--experimental-modules",
++    "--cjs-loader",
+     "--loader",
+     "--trace-warnings",
+     "--redirect-warnings",
+@@ -4159,7 +4165,7 @@ static void ParseArgs(int* argc,
+       config_preserve_symlinks = true;
+     } else if (strcmp(arg, "--experimental-modules") == 0) {
+       config_experimental_modules = true;
+-    }  else if (strcmp(arg, "--loader") == 0) {
++    } else if (strcmp(arg, "--loader") == 0) {
+       const char* module = argv[index + 1];
+       if (!config_experimental_modules) {
+         fprintf(stderr, "%s: %s requires --experimental-modules be enabled\n",
+@@ -4172,6 +4178,14 @@ static void ParseArgs(int* argc,
+       }
+       args_consumed += 1;
+       config_userland_loader = module;
++    } else if (strcmp(arg, "--cjs-loader") == 0) {
++      const char* module = argv[index + 1];
++      if (module == nullptr) {
++        fprintf(stderr, "%s: %s requires an argument\n", argv[0], arg);
++        exit(9);
++      }
++      args_consumed += 1;
++      config_cjs_userland_loader = module;
+     } else if (strcmp(arg, "--prof-process") == 0) {
+       prof_process = true;
+       short_circuit = true;
+diff --git a/src/node_config.cc b/src/node_config.cc
+index a11faaefec..410e94b525 100644
+--- a/src/node_config.cc
++++ b/src/node_config.cc
+@@ -78,6 +78,16 @@ static void InitConfig(Local<Object> target,
+     }
+   }
+ 
++  if (!config_cjs_userland_loader.empty()) {
++    target->DefineOwnProperty(
++        context,
++        FIXED_ONE_BYTE_STRING(isolate, "cjsUserLoader"),
++        String::NewFromUtf8(isolate,
++                            config_cjs_userland_loader.data(),
++                            v8::NewStringType::kNormal).ToLocalChecked(),
++        ReadOnly).FromJust();
++  }
++
+   if (config_pending_deprecation)
+     READONLY_BOOLEAN_PROPERTY("pendingDeprecation");
+ 
+diff --git a/src/node_internals.h b/src/node_internals.h
+index e2e81d61e3..6b7cf5539c 100644
+--- a/src/node_internals.h
++++ b/src/node_internals.h
+@@ -81,6 +81,11 @@ extern bool config_experimental_modules;
+ // that is used by lib/internal/bootstrap_node.js
+ extern std::string config_userland_loader;
+ 
++// Set in node.cc by ParseArgs when --cjs-loader is used.
++// Used in node_config.cc to set a constant on process.binding('config')
++// that is used by lib/internal/bootstrap/node.js
++extern std::string config_cjs_userland_loader;
++
+ // Set in node.cc by ParseArgs when --expose-internals or --expose_internals is
+ // used.
+ // Used in node_config.cc to set a constant on process.binding('config')

@@ -1,0 +1,20 @@
+{
+  "name": "attack-review-testbed",
+  "version": "1.0.0-nopublish",
+  "description": "A testbed for github.com/nodejs/security-wg/issues/409",
+  "main": "main.js",
+  "scripts": {
+    "postinstall": "scripts/postinstall.sh",
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mikesamuel/attack-review-testbed.git"
+  },
+  "author": "@mikesamuel",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/mikesamuel/attack-review-testbed/issues"
+  },
+  "homepage": "https://github.com/mikesamuel/attack-review-testbed#readme"
+}
