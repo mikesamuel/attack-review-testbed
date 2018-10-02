@@ -4,8 +4,13 @@
   "description": "A testbed for github.com/nodejs/security-wg/issues/409",
   "main": "main.js",
   "scripts": {
+    "cover": "istanbul cover _mocha",
+    "coveralls": "npm run cover -- --report lcovonly && cat ./coverage/lcov.info | coveralls",
+    "license": "scripts/license-check.sh",
+    "lint": "./node_modules/.bin/eslint .",
     "postinstall": "scripts/postinstall.sh",
-    "test": "mocha"
+    "prepack": "npm run lint && npm test",
+    "test": "mkdir -p generated && scripts/generate-production-source-list.js generated/prod-sources"
   },
   "repository": {
     "type": "git",
@@ -16,5 +21,57 @@
   "bugs": {
     "url": "https://github.com/mikesamuel/attack-review-testbed/issues"
   },
-  "homepage": "https://github.com/mikesamuel/attack-review-testbed#readme"
+  "homepage": "https://github.com/mikesamuel/attack-review-testbed#readme",
+  "sensitiveModules": {
+    "child_process": {
+      "advice": "Use safe_child_process.js instead.",
+      "ids": []
+    }
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "capture-console": "^1.0.1",
+    "chai": "^4.2.0",
+    "coveralls": "^3.0.2",
+    "eslint": "^5.6.1",
+    "eslint-config-strict": "^14.0.1",
+    "istanbul": "^0.4.5",
+    "mocha": "^5.2.0",
+    "pre-commit": "^1.2.2"
+  },
+  "pre-commit": [
+    "license",
+    "prepack"
+  ],
+  "eslintIgnore": [
+    "/bin/node.d/node/**",
+    "/coverage/**"
+  ],
+  "eslintConfig": {
+    "extends": [
+      "strict"
+    ],
+    "parserOptions": {
+      "ecmaVersion": 6,
+      "sourceType": "source",
+      "ecmaFeatures": {
+        "impliedStrict": false
+      }
+    },
+    "rules": {
+      "no-warning-comments": [
+        "error",
+        {
+          "terms": [
+            "do not submit"
+          ]
+        }
+      ],
+      "no-void": "off",
+      "strict": [
+        "error",
+        "global"
+      ]
+    }
+  }
 }
