@@ -29,7 +29,8 @@ describe('sensitive-module-hook', () => {
       'advice': 'Try to use safe/child_process instead.  If that doesn\'t work, ask @security-oncall',
       'ids': [ './may-use-childprocess.js' ],
     },
-    './unsafe.js': [ './may-use-unsafe.js' ],
+    'fs': null,
+    './unsafe.js': './may-use-unsafe.js',
   };
   describe('reportOnly', () => {
     const hook = makeHook(config, __dirname, true);
@@ -114,6 +115,16 @@ describe('sensitive-module-hook', () => {
               '../lib/framework/module-hooks/sensitive-module-hook.js:' +
               ' Blocking require("child_process") by unsafe.js\n' +
               '\tTry to use safe/child_process instead.  If that doesn\'t work, ask @security-oncall\n'),
+            stdout: '',
+          });
+      });
+      it('disallowed no list', () => {
+        expect(runHook(hook, 'unsafe.js', 'fs'))
+          .to.deep.equal({
+            result: require.resolve('../lib/framework/module-hooks/innocuous.js'),
+            stderr: (
+              '../lib/framework/module-hooks/sensitive-module-hook.js:' +
+              ' Blocking require("fs") by unsafe.js\n'),
             stdout: '',
           });
       });
