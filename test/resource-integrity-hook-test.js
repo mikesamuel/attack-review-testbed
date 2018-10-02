@@ -36,64 +36,72 @@ describe('resource-integrity-hook', () => {
     const hook = makeHook(config, basedir, true);
     it('match', () => {
       const target = './file-with-known-hash.js';
-      const { result, stdout, stderr } = runHook(hook, 'source.js', target);
-      expect(result).to.equal(target);
-      expect(stderr).to.equal('', 'stderr');
-      expect(stdout).to.equal('', 'stdout');
+      expect(runHook(hook, 'source.js', target))
+        .to.deep.equal({
+          result: target,
+          stderr: '',
+          stdout: '',
+        });
     });
     it('mismatch', () => {
       const target = './file-with-wrong-hash.js';
-      const { result, stdout, stderr } = runHook(hook, 'source.js', target);
-      expect(result).to.equal(target);
-      expect(stderr).to.equal(
-        'lib/framework/module-hooks/resource-integrity-hook.js: ' +
-        'Blocking require("./file-with-wrong-hash.js") ' +
-        'by test/source.js\n',
-        'stderr');
-      expect(stdout).to.equal('', 'stdout');
+      expect(runHook(hook, 'source.js', target))
+        .to.deep.equal({
+          result: target,
+          stderr: (
+            'lib/framework/module-hooks/resource-integrity-hook.js: ' +
+            'Blocking require("./file-with-wrong-hash.js") ' +
+            'by test/source.js\n'),
+          stdout: '',
+        });
     });
     it('404', () => {
       const target = './no-such-file.js';
-      const { result, stdout, stderr } = runHook(hook, 'source.js', target);
-      expect(result).to.equal(target);
-      expect(stderr).to.equal(
-        'lib/framework/module-hooks/resource-integrity-hook.js: ' +
-        'Blocking require("./no-such-file.js") ' +
-        'by test/source.js\n',
-        'stderr');
-      expect(stdout).to.equal('', 'stdout');
+      expect(runHook(hook, 'source.js', target))
+        .to.deep.equal({
+          result: target,
+          stderr: (
+            'lib/framework/module-hooks/resource-integrity-hook.js: ' +
+            'Blocking require("./no-such-file.js") ' +
+            'by test/source.js\n'),
+          stdout: '',
+        });
     });
   });
   describe('active', () => {
     const hook = makeHook(config, basedir, false);
     it('match', () => {
       const target = './file-with-known-hash.js';
-      const { result, stdout, stderr } = runHook(hook, 'source.js', target);
-      expect(result).to.equal(target);
-      expect(stderr).to.equal('', 'stderr');
-      expect(stdout).to.equal('', 'stdout');
+      expect(runHook(hook, 'source.js', target))
+        .to.deep.equal({
+          result: target,
+          stderr: '',
+          stdout: '',
+        });
     });
     it('mismatch', () => {
       const target = './file-with-wrong-hash.js';
-      const { result, stdout, stderr } = runHook(hook, 'source.js', target);
-      expect(path.basename(result)).to.equal('innocuous.js');
-      expect(stderr).to.equal(
-        'lib/framework/module-hooks/resource-integrity-hook.js: ' +
-        'Blocking require("./file-with-wrong-hash.js") ' +
-        'by test/source.js\n',
-        'stderr');
-      expect(stdout).to.equal('', 'stdout');
+      expect(runHook(hook, 'source.js', target))
+        .to.deep.equal({
+          result: require.resolve('../lib/framework/module-hooks/innocuous.js'),
+          stderr: (
+            'lib/framework/module-hooks/resource-integrity-hook.js: ' +
+            'Blocking require("./file-with-wrong-hash.js") ' +
+            'by test/source.js\n'),
+          stdout: '',
+        });
     });
     it('404', () => {
       const target = './no-such-file.js';
-      const { result, stdout, stderr } = runHook(hook, 'source.js', target);
-      expect(path.basename(result)).to.equal('innocuous.js');
-      expect(stderr).to.equal(
-        'lib/framework/module-hooks/resource-integrity-hook.js: ' +
-        'Blocking require("./no-such-file.js") ' +
-        'by test/source.js\n',
-        'stderr');
-      expect(stdout).to.equal('', 'stdout');
+      expect(runHook(hook, 'source.js', target))
+        .to.deep.equal({
+          result: require.resolve('../lib/framework/module-hooks/innocuous.js'),
+          stderr: (
+            'lib/framework/module-hooks/resource-integrity-hook.js: ' +
+            'Blocking require("./no-such-file.js") ' +
+            'by test/source.js\n'),
+          stdout: '',
+        });
     });
   });
 });
