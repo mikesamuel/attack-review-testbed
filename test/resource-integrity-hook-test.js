@@ -36,24 +36,30 @@ describe('resource-integrity-hook', () => {
     const hook = makeHook(config, basedir, true);
     it('match', () => {
       const target = './file-with-known-hash.js';
-      expect(runHook(hook, 'source.js', target))
-        .to.deep.equal({
-          result: target,
-          stderr: '',
-          stdout: '',
-        });
+      // Test hash caching
+      for (let retries = 2; --retries >= 0;) {
+        expect(runHook(hook, 'source.js', target))
+          .to.deep.equal({
+            result: target,
+            stderr: '',
+            stdout: '',
+          });
+      }
     });
     it('mismatch', () => {
       const target = './file-with-wrong-hash.js';
-      expect(runHook(hook, 'source.js', target))
-        .to.deep.equal({
-          result: target,
-          stderr: (
-            'lib/framework/module-hooks/resource-integrity-hook.js: ' +
-            'Blocking require("./file-with-wrong-hash.js") ' +
-            'by test/source.js\n'),
-          stdout: '',
-        });
+      // Test hash caching
+      for (let retries = 2; --retries >= 0;) {
+        expect(runHook(hook, 'source.js', target))
+          .to.deep.equal({
+            result: target,
+            stderr: (
+              'lib/framework/module-hooks/resource-integrity-hook.js: ' +
+              'Blocking require("./file-with-wrong-hash.js") ' +
+              'by test/source.js\n'),
+            stdout: '',
+          });
+      }
     });
     it('404', () => {
       const target = './no-such-file.js';
@@ -72,12 +78,15 @@ describe('resource-integrity-hook', () => {
     const hook = makeHook(config, basedir, false);
     it('match', () => {
       const target = './file-with-known-hash.js';
-      expect(runHook(hook, 'source.js', target))
-        .to.deep.equal({
-          result: target,
-          stderr: '',
-          stdout: '',
-        });
+      // Test hash caching
+      for (let retries = 2; --retries >= 0;) {
+        expect(runHook(hook, 'source.js', target))
+          .to.deep.equal({
+            result: target,
+            stderr: '',
+            stdout: '',
+          });
+      }
     });
     it('mismatch', () => {
       const target = './file-with-wrong-hash.js';
