@@ -2,7 +2,7 @@
 
 set -e
 
-MISSING="$(find lib scripts test -name \*.js | xargs grep -c 'Apache' | perl -ne 'print if s/:0$//')"
+MISSING="$(find lib scripts test main.js -name \*.js | xargs grep -c 'Apache' | perl -ne 'print if s/:0$//')"
 
 if [ -n "$MISSING" ]; then
     echo Need license headers in
