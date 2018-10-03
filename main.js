@@ -25,6 +25,28 @@
  * before any monkeypatching by the majority of unprivileged modules.
  */
 
+// Lock down intrinsics early so security critical code can rely on properties
+// of objects that they create and which do not escape.
+require('./lib/framework/lockdown.js')();
+
 // Load hooks so that dependency graph is complete when running in test mode.
 require('./lib/init-hooks.js');
-require('./lib/framework/lockdown.js')();
+
+// Configure access control checks to contract type constructors.
+require('node-sec-patterns').authorize(require('./package.json'));
+
+const process = require('process');
+
+if (require.main === module) {
+  const timeout = setTimeout(
+    () => {
+      // Pretend server running.
+    },
+    // eslint-disable-next-line no-magic-numbers
+    10000);
+  process.on('SIGINT', () => {
+    clearTimeout(timeout);
+  });
+}
+
+// :)
