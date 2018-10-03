@@ -10,6 +10,7 @@
     "lint": "./node_modules/.bin/eslint .",
     "postinstall": "scripts/postinstall.sh",
     "prepack": "npm run lint && npm test",
+    "prepublishOnly": "echo This package should not be published to NPM && false",
     "test": "mkdir -p generated && scripts/generate-production-source-list.js generated/prod-sources"
   },
   "repository": {
