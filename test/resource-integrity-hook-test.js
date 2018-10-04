@@ -26,6 +26,8 @@ const { runHook } = require('./run-hook.js');
 
 const basedir = path.resolve(path.join(__dirname, '..'));
 
+const resultOnReject = require.resolve('../lib/framework/module-hooks/innocuous.js');
+
 describe('resource-integrity-hook', () => {
   const config = {
     // As reported by `shasum -a 256 test/file-with-known-hash.js`
@@ -92,7 +94,7 @@ describe('resource-integrity-hook', () => {
       const target = './file-with-wrong-hash.js';
       expect(runHook(hook, 'source.js', target))
         .to.deep.equal({
-          result: require.resolve('../lib/framework/module-hooks/innocuous.js'),
+          result: resultOnReject,
           stderr: (
             'lib/framework/module-hooks/resource-integrity-hook.js: ' +
             'Blocking require("./file-with-wrong-hash.js") ' +
@@ -104,7 +106,7 @@ describe('resource-integrity-hook', () => {
       const target = './no-such-file.js';
       expect(runHook(hook, 'source.js', target))
         .to.deep.equal({
-          result: require.resolve('../lib/framework/module-hooks/innocuous.js'),
+          result: resultOnReject,
           stderr: (
             'lib/framework/module-hooks/resource-integrity-hook.js: ' +
             'Blocking require("./no-such-file.js") ' +
@@ -112,5 +114,18 @@ describe('resource-integrity-hook', () => {
           stdout: '',
         });
     });
+  });
+  it('fail-closed', () => {
+    const hook = makeHook(null, basedir, false);
+    const target = './file-with-known-hash.js';
+    expect(runHook(hook, 'source.js', target))
+      .to.deep.equal({
+        result: resultOnReject,
+        stderr: (
+          'lib/framework/module-hooks/resource-integrity-hook.js: ' +
+          'Blocking require("./file-with-known-hash.js") by test/source.js\n'
+        ),
+        stdout: '',
+      });
   });
 });

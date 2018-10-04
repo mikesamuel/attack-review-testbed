@@ -24,7 +24,7 @@ const hook = require('../lib/init-hooks.js');
 const { runHook } = require('./run-hook.js');
 
 describe('init-hooks', () => {
-  it('require package.json', () => {
+  it('require child_process', () => {
     expect(runHook(hook, 'init-hooks-test.js', 'child_process'))
       .to.deep.equals({
         result: require.resolve('../lib/framework/module-hooks/innocuous.js'),
@@ -34,5 +34,29 @@ describe('init-hooks', () => {
           '\n\tUse safe_child_process.js instead.\n'),
         stdout: '',
       });
+  });
+  it('require package.json', () => {
+    expect(runHook(hook, 'init-hooks-test.js', '../package.json'))
+      .to.deep.equals({
+        result: '../package.json',
+        stderr: '',
+        stdout: '',
+      });
+  });
+  it('doppelgangers', () => {
+    let stringifyCount = 0;
+    const doppelganger = {
+      toString() {
+        return [ '../package.json' ][stringifyCount++] || 'child_process';
+      },
+    };
+
+    expect(runHook(hook, 'init-hooks-test.js', doppelganger))
+      .to.deep.equals({
+        result: '../package.json',
+        stderr: '',
+        stdout: '',
+      });
+    expect(stringifyCount).to.equal(1);
   });
 });
