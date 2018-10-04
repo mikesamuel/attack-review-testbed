@@ -1,0 +1,4 @@
+/**
+ * @fileoverview
+ * Client side JavaScript.
+ */

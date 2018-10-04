@@ -27,10 +27,36 @@
     "child_process": {
       "advice": "Use safe_child_process.js instead.",
       "ids": []
-    }
+    },
+    "process": {
+      "advice": "Process is easy to misuse.  If you need access to process metadata, thread it through from main.js.  Changes the process's environment should go through the docker wrapper.  Contact security-oncall@ if these options don't work for you.",
+      "ids": [
+        "main.js",
+        "lib/framework/builtin-module-ids.js",
+        "lib/framework/is-prod.js",
+        "lib/framework/lockdown.js",
+        "lib/server.js"
+      ]
+    },
+    "node_modules/pirates/lib/index.js": {
+      "advice": "addHook affects all modules.  security-oncall@ can help integrate custom loader hooks.",
+      "ids": [
+        "node_modules/pug-require/index.js",
+        "lib/framework/lockdown.js"
+      ]
+    },
+    "./lib/init-hooks.js": [
+      "./main.js"
+    ]
   },
   "dependencies": {
-    "node-sec-patterns": "^2.0.3"
+    "cookie": "^0.3.1",
+    "node-sec-patterns": "^2.0.3",
+    "pug": "^2.0.3",
+    "pug-require": "^1.0.6-alpha",
+    "pug-runtime-trusted-types": "^1.0.6-alpha",
+    "serve-static": "^1.13.2",
+    "web-contract-types": "^1.0.4"
   },
   "devDependencies": {
     "capture-console": "^1.0.1",
@@ -62,6 +88,12 @@
       }
     },
     "rules": {
+      "no-confusing-arrow": [
+        "error",
+        {
+          "allowParens": true
+        }
+      ],
       "no-warning-comments": [
         "error",
         {
