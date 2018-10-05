@@ -28,6 +28,9 @@
       "advice": "Use safe/child_process.js instead.",
       "ids": []
     },
+    "http": [
+      "lib/server.js"
+    ],
     "process": {
       "advice": "Process is easy to misuse.  If you need access to process metadata, thread it through from main.js.  Changes the process's environment should go through the docker wrapper.  Contact security-oncall@ if these options don't work for you.",
       "ids": [
