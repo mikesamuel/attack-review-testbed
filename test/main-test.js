@@ -17,4 +17,11 @@
 
 'use strict';
 
+/**
+ * @fileoverview
+ * A "test" file that simply requires the main module, so that when
+ * scripts/generate-production-source-list.js runs, there is a node in
+ * the require graph from which it can start enumerating production modules.
+ */
+
 require('../main');
