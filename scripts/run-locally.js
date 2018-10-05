@@ -57,108 +57,175 @@ function mkdirp(dir) {
   return dir;
 }
 
-// Make sure postgres is on the path
-const postgresExec = x('which', 'postgres').replace(/\n$/, '');
+function rmrf(dir) {
+  x('rm', '-rf', '--', dir);
+}
 
-const pgDir = path.join(rootDir, 'pg');
+/**
+ * Initializes an empty Postgres database that lets user webfe
+ * connect via a UNIX socket visible to the current POSIX user.
+ *
+ * @param onceDatabaseStarted receives a bunch of file-system
+ *    metadata about the database and a teardown method.
+ */
+function spinUpDatabase(onceDatabaseStarted) {
+  // Make sure postgres is on the path
+  const postgresExec = x('which', 'postgres').replace(/\n$/, '');
 
-// Does this need to go under \\?\pipe on Windows?
-const pgSocksDir = mkdirp(path.join(pgDir, 'socks'));
+  const pgDir = path.join(rootDir, 'pg');
 
-// Skipping [0, 1000) lets us avoid leading zero problems.
-randomNumber(1000, 9999).then(
-  (counterStart) => {
-    const pgInfo = (() => {
-      for (let i = counterStart; (i = (i + 1) % 10000) !== counterStart;) {
-        let ext = String(i);
-        ext = `${ '0000'.substring(ext.length) }${ ext }`;
-        const socketFile = path.join(pgSocksDir, `.s.PGSQL.${ ext }`);
-        if (!fs.existsSync(socketFile)) {
-          return {
-            pgSockFile: socketFile,
-            pgPort: ext,
-          };
+  // HACK: This probably doesn't work on Windows.  Probably none of this does.
+  const pgSocksDir = mkdirp(path.join(pgDir, 'socks'));
+
+  // Skipping [0, 1000) lets us avoid leading zero problems.
+  randomNumber(1000, 9999).then(
+    (counterStart) => {
+      const pgInfo = (() => {
+        for (let i = counterStart; (i = (i + 1) % 10000) !== counterStart;) {
+          let ext = String(i);
+          ext = `${ '0000'.substring(ext.length) }${ ext }`;
+          const socketFile = path.join(pgSocksDir, `.s.PGSQL.${ ext }`);
+          if (!fs.existsSync(socketFile)) {
+            return {
+              pgSockFile: socketFile,
+              pgPort: ext,
+            };
+          }
         }
-      }
-      throw new Error('Unable to find free socket');
-    })();
-    // eslint-disable-next-line no-use-before-define
-    onceSocketAllocated(pgInfo);
-  });
-
-function onceSocketAllocated({ pgSockFile, pgPort }) {
-  const pgDataDir = mkdirp(path.join(pgDir, pgPort, 'data'));
-  const pgLogsDir = mkdirp(path.join(pgDir, pgPort, 'logs'));
-
-  x(path.join(path.dirname(postgresExec), 'initdb'),
-    // Data directory
-    '-D', pgDataDir,
-    // Encoding
-    '-E', 'utf8',
-    // Root user name
-    '-U', 'webfe');
-
-  // Spin up a database instance
-  let dbProcess = null;
-  {
-    const stdoutFd = fs.openSync(path.join(pgLogsDir, 'stdout.txt'), 'w', 0o0600);
-    const stderrFd = fs.openSync(path.join(pgLogsDir, 'stderr.txt'), 'w', 0o0600);
-    process.on('beforeExit', () => {
-      fs.close(stdoutFd);
-      fs.close(stderrFd);
+        throw new Error('Unable to find free socket');
+      })();
+      // eslint-disable-next-line no-use-before-define
+      onceSocketAllocated(pgInfo);
     });
 
-    const pgArgs = [
-      /* eslint-disable array-element-newline */
-      // Verbosity
-      '-d', '3',
+  let dbProcess = null;
+  let pgDataDir = null;
+  let pgLogsDir = null;
+  let stdoutFd = null;
+  let stderrFd = null;
+
+  function teardown() {
+    if (dbProcess !== null) {
+      dbProcess.kill('SIGINT');
+      dbProcess = null;
+    }
+    if (pgDataDir !== null) {
+      rmrf(pgDataDir);
+      pgDataDir = null;
+    }
+    if (pgLogsDir !== null) {
+      rmrf(pgLogsDir);
+      pgLogsDir = null;
+    }
+    if (stdoutFd !== null) {
+      fs.closeSync(stdoutFd);
+      stdoutFd = null;
+    }
+    if (stderrFd !== null) {
+      fs.closeSync(stderrFd);
+      stderrFd = null;
+    }
+  }
+  process.on('beforeExit', teardown);
+
+  function onceSocketAllocated({ pgSockFile, pgPort }) {
+    pgDataDir = mkdirp(path.join(pgDir, pgPort, 'data'));
+    pgLogsDir = mkdirp(path.join(pgDir, pgPort, 'logs'));
+
+    x(path.join(path.dirname(postgresExec), 'initdb'),
       // Data directory
       '-D', pgDataDir,
-      // Socket directory
-      '-k', pgSocksDir,
-      // Port
-      '-p', pgPort,
-      /* eslint-enable array-element-newline */
-    ];
+      // Encoding
+      '-E', 'utf8',
+      // Root user name
+      '-U', 'webfe');
 
-    dbProcess = childProcess.spawn(
-      postgresExec,
-      pgArgs,
-      {
-        shell: false,
-        stdio: [ 'ignore', stdoutFd, stderrFd ],
-      });
-    process.on('beforeExit', () => dbProcess.kill());
-    console.log(`Database starting on ${ pgSockFile } and logging to ${ pgLogsDir }.std{err,out}`);
-  }
-  // TODO: maybe watch for the existence of the socket file instead of sleeping.
-  setTimeout(
-    // eslint-disable-next-line no-use-before-define
-    () => onceDatabaseStarted({ pgSockFile, pgPort }),
-    // ms
-    1000);
-}
-
-function onceDatabaseStarted({ pgPort }) {
-  // Run the server main file
-  const serverProcess = childProcess.spawn(
-    path.join(rootDir, 'main.js'),
-    process.argv.slice(2),
+    // Spin up a database instance
+    stdoutFd = fs.openSync(path.join(pgLogsDir, 'stdout.txt'), 'w', 0o0600);
+    stderrFd = fs.openSync(path.join(pgLogsDir, 'stderr.txt'), 'w', 0o0600);
     {
-      shell: false,
-      stdio: 'inherit',
-      env: Object.assign(
-        Object.create(null),
-        // eslint-disable-next-line no-process-env
-        process.env,
+      const pgArgs = [
+        /* eslint-disable array-element-newline */
+        // Verbosity
+        '-d', '3',
+        // Data directory
+        '-D', pgDataDir,
+        // Socket directory
+        '-k', pgSocksDir,
+        // Port
+        '-p', pgPort,
+        /* eslint-enable array-element-newline */
+      ];
+
+      dbProcess = childProcess.spawn(
+        postgresExec,
+        pgArgs,
         {
-          // https://node-postgres.com/features/connecting
-          PGUSER: 'webfe',
-          PGHOST: pgSocksDir,
-          PGPORT: pgPort,
-          PGPASSWORD: '',
-          PGDATABASE: 'postgres',
-        }),
-    });
-  process.on('beforeExit', () => serverProcess.kill());
+          shell: false,
+          stdio: [ 'ignore', stdoutFd, stderrFd ],
+        });
+      console.log(`Database starting on ${ pgSockFile } and logging to ${ pgLogsDir }.std{err,out}`);
+    }
+
+    // Wait until the socket file is apparent in the file system.
+    // TODO: timeout?
+    let watcher = null;
+    let spunup = false;
+    function onceSocketAvailable() {
+      if (spunup) {
+        return;
+      }
+      spunup = true;
+      onceDatabaseStarted({
+        pgSockFile, pgPort, pgSocksDir, pgDataDir, pgLogsDir, teardown,
+      });
+    }
+
+    function checkSock() {
+      fs.exists(pgSockFile, (exists) => {
+        if (exists) {
+          onceSocketAvailable();
+          if (watcher) {
+            watcher.close();
+          }
+        }
+      });
+    }
+
+    watcher = fs.watch(path.dirname(pgSockFile), {}, checkSock);
+    // In case it's already there.
+    checkSock();
+  }
 }
+
+
+if (require.main === module) {
+  spinUpDatabase(
+    ({ pgPort, pgSocksDir }) => {
+      // Run the server main file
+      const serverProcess = childProcess.spawn(
+        path.join(rootDir, 'main.js'),
+        process.argv.slice(2),
+        {
+          shell: false,
+          stdio: 'inherit',
+          env: Object.assign(
+            Object.create(null),
+            // eslint-disable-next-line no-process-env
+            process.env,
+            {
+              // https://node-postgres.com/features/connecting
+              PGUSER: 'webfe',
+              PGHOST: pgSocksDir,
+              PGPORT: pgPort,
+              PGPASSWORD: '',
+              PGDATABASE: 'postgres',
+            }),
+        });
+      process.on('beforeExit', () => serverProcess.kill());
+    });
+}
+
+module.exports = { spinUpDatabase };
+
+// :)

@@ -20,18 +20,73 @@
 /* eslint id-blacklist: 0, no-multi-str: 0, no-magic-numbers: 0 */
 
 const { expect } = require('chai');
-const { describe, it } = require('mocha');
+const { after, describe, it } = require('mocha');
 
 const path = require('path');
 const process = require('process');
 const request = require('request');
 const { URL } = require('url');
 const { startIntercept, stopIntercept } = require('capture-console');
+const { spinUpDatabase } = require('../scripts/run-locally.js');
 
 const { start } = require('../lib/server.js');
 
 const hostName = '127.0.0.1';
 const rootDir = path.resolve(path.join(__dirname, '..'));
+
+const { withDbConfig, teardownDb } = (() => {
+  let pending = null;
+  let dbConfig = null;
+  let teardownFun = null;
+
+  function scheduleToRun(onDbAvailable) {
+    setTimeout(() => {
+      onDbAvailable(dbConfig);
+    }, 0);
+  }
+
+  return {
+    teardownDb() {
+      // We don't need to wait for inflight database-using tasks to finish
+      // before teardown since mocha describe() does that for us.
+      setTimeout(
+        () => {
+          if (teardownFun) {
+            teardownFun();
+          }
+        }, 0);
+    },
+    withDbConfig(onDbAvailable) {
+      if (pending) {
+        // Wait in line.
+        pending.push(onDbAvailable);
+      } else if (dbConfig) {
+        scheduleToRun(onDbAvailable);
+      } else {
+        pending = [ onDbAvailable ];
+        spinUpDatabase(({ pgSocksDir, pgPort, teardown }) => {
+          dbConfig = {
+            user: 'webfe',
+            host: pgSocksDir,
+            port: pgPort,
+            database: 'postgres',
+          };
+          process.on('beforeExit', teardown);
+
+          const toNotify = pending;
+          pending = null;
+          if (toNotify) {
+            for (const fun of toNotify) {
+              scheduleToRun(fun);
+            }
+          }
+
+          teardownFun = teardown;
+        });
+      }
+    },
+  };
+})();
 
 function withServer(onStart) {
   let i = 0;
@@ -40,28 +95,30 @@ function withServer(onStart) {
     return 'x'.repeat(32 - str.length) + str;
   }
 
-  let stdout = '';
-  let stderr = '';
-  startIntercept(process.stdout, (chunk) => {
-    stdout += chunk;
+  withDbConfig((dbConfig) => {
+    let stdout = '';
+    let stderr = '';
+    startIntercept(process.stdout, (chunk) => {
+      stdout += chunk;
+    });
+    startIntercept(process.stderr, (chunk) => {
+      stderr += chunk;
+    });
+    const { stop } = start(
+      { hostName, port: 0, rootDir, dbConfig },
+      (err, actualPort) => {
+        const url = new URL(`http://${ hostName }:${ actualPort }`);
+        onStart(
+          err, url,
+          () => {
+            stop();
+            stopIntercept(process.stderr);
+            stopIntercept(process.stdout);
+          },
+          () => ({ stderr, stdout }));
+      },
+      notReallyUnguessable);
   });
-  startIntercept(process.stderr, (chunk) => {
-    stderr += chunk;
-  });
-  const { stop } = start(
-    { hostName, port: 0, rootDir },
-    (err, actualPort) => {
-      const url = new URL(`http://${ hostName }:${ actualPort }`);
-      onStart(
-        err, url,
-        () => {
-          stop();
-          stopIntercept(process.stderr);
-          stopIntercept(process.stdout);
-        },
-        () => ({ stderr, stdout }));
-    },
-    notReallyUnguessable);
 }
 
 function sessionCookieForResponse({ headers }) {
@@ -117,6 +174,10 @@ function expects(assertions, done) {
 }
 
 describe('end-to-end', () => {
+  after(() => {
+    teardownDb();
+  });
+
   serverTest('GET / OK', (baseUrl, done, logs) => {
     request(
       new URL('/', baseUrl).href,
@@ -189,6 +250,37 @@ ${ target }</p></body></html>`,
             logs: {
               stderr: '',
               stdout: 'GET /no-such-file\n',
+            },
+          });
+        }, done));
+  });
+
+  serverTest('GET /echo OK', (baseUrl, done, logs) => {
+    const target = new URL('/echo?a%22=b%27&foo=bar&baz', baseUrl).href;
+    request(
+      target,
+      (err, response, body) => expects(
+        () => {
+          expect({
+            err,
+            statusCode: response && response.statusCode,
+            body,
+            logs: logs(),
+          }).to.deep.equal({
+            err: null,
+            statusCode: 200,
+            // eslint-disable-next-line quotes
+            body: `<!DOCTYPE html><html><head><title>Database Echo</title>\
+<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
+</head><body><table>\
+<tr><th>a&#34;</th><th>foo</th><th>baz</th></tr>\
+<tr><td>b&#39;</td><td>bar</td><td></td></tr>\
+</table></body></html>`,
+            logs: {
+              stderr: '',
+              stdout: (
+                'GET /echo?a%22=b%27&foo=bar&baz\n' +
+                'echo sending SELECT e\'b\'\'\' AS "a""", \'bar\' AS "foo", \'\' AS "baz"\n'),
             },
           });
         }, done));
