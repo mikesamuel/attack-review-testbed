@@ -6,7 +6,23 @@ set -e
 mkdir -p generated
 
 # Generate the production source list
-scripts/generate-production-source-list.js generated/prod-sources
+# Run the tests once to make sure we have an up-to-date production source list,
+# and if there are failures and the production source list changed, rerun.
+PROD_SOURCE_LIST=
+PROD_MASTER_HASH=
+if [ -f generated/prod-sources.json ]; then
+    PROD_MASTER_HASH="$(shasum -a 256 generated/prod-sources.json)"
+fi
+if ! scripts/generate-production-source-list.js generated/prod-sources; then
+    NEW_PROD_MASTER_HASH="$(shasum -a 256 generated/prod-sources.json)"
+    if [[ "$PROD_MASTER_HASH" != "$NEW_PROD_MASTER_HASH" ]]; then
+        echo Rerunning tests with updated production source list
+        echo . "$PROD_MASTER_HASH" '->' "$NEW_PROD_MASTER_HASH"
+        scripts/generate-production-source-list.js generated/prod-sources
+    else
+        exit 1
+    fi
+fi
 
 # Sanity check the server by starting it, and then tell it to hangup.
 echo Starting server
