@@ -1,9 +1,12 @@
 # Application specific generated files
 # node binary generated at postinstall time
 /bin/node
-/generated/**
-# patched clone of node git repo
+/generated
+# Patched clone of node git repo
 /bin/node.d/node
+# Directory owned by locally running postgres instances.
+# See script/run-locally.js
+/pg
 
 # Emacs droppings
 *~
