@@ -31,7 +31,7 @@ describe('init-hooks', () => {
         stderr: (
           'lib/framework/module-hooks/sensitive-module-hook.js:' +
           ' Blocking require("child_process") by test/init-hooks-test.js' +
-          '\n\tUse safe_child_process.js instead.\n'),
+          '\n\tUse safe/child_process.js instead.\n'),
         stdout: '',
       });
   });

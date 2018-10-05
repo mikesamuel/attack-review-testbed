@@ -139,12 +139,11 @@ function onceSocketAllocated({ pgSockFile, pgPort }) {
     1000);
 }
 
-function onceDatabaseStarted({ pgSockFile, pgPort }) {
+function onceDatabaseStarted({ pgPort }) {
   // Run the server main file
   const serverProcess = childProcess.spawn(
     path.join(rootDir, 'main.js'),
-    // 0 -> Pick a free port
-    [ '127.0.0.1', '0', rootDir, pgSockFile ],
+    process.argv.slice(2),
     {
       shell: false,
       stdio: 'inherit',

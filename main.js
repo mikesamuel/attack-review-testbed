@@ -74,7 +74,7 @@ if (require.main === module) {
   } else {
     const [ hostName = defaultHostName, port = defaultPort, rootDir = defaultRootDir ] = argv;
     const { stop } = start(
-      { hostName, port, rootDir },
+      { hostName, port, rootDir, dbConfig: null },
       (exc, actualPort) => {
         if (exc) {
           process.exitCode = 1;

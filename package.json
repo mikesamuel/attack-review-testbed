@@ -25,7 +25,7 @@
   "homepage": "https://github.com/mikesamuel/attack-review-testbed#readme",
   "sensitiveModules": {
     "child_process": {
-      "advice": "Use safe_child_process.js instead.",
+      "advice": "Use safe/child_process.js instead.",
       "ids": []
     },
     "process": {
@@ -47,7 +47,13 @@
     },
     "./lib/init-hooks.js": [
       "./main.js"
-    ]
+    ],
+    "pg": {
+      "advice": "Use safe/pg.js instead.",
+      "ids": [
+        "lib/safe/pg.js"
+      ]
+    }
   },
   "dependencies": {
     "cookie": "^0.3.1",

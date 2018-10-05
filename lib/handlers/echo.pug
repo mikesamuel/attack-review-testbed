@@ -1,0 +1,16 @@
+doctype html
+html
+  head
+    title Database Echo
+    script(nonce=cspNonce src='/common.js')
+  body
+    if failure
+      .failure= failure.message
+    else
+      table
+        tr
+          each col in result
+            th= col[0]
+        tr
+          each col in result
+            td= col[1]
