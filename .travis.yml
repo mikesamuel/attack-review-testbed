@@ -8,5 +8,8 @@ node_js:
 # Use faster Docker architecture on Travis.
 sudo: false
 
+services:
+  - postgresql
+
 script:        ./scripts/validate.sh
 after_success: npm run coveralls
