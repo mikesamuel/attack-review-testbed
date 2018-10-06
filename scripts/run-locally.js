@@ -109,14 +109,6 @@ function spinUpDatabase(onceDatabaseStarted) {
       dbProcess.kill('SIGINT');
       dbProcess = null;
     }
-    if (pgDataDir !== null) {
-      rmrf(pgDataDir);
-      pgDataDir = null;
-    }
-    if (pgLogsDir !== null) {
-      rmrf(pgLogsDir);
-      pgLogsDir = null;
-    }
     if (stdoutFd !== null) {
       fs.closeSync(stdoutFd);
       stdoutFd = null;
@@ -124,6 +116,22 @@ function spinUpDatabase(onceDatabaseStarted) {
     if (stderrFd !== null) {
       fs.closeSync(stderrFd);
       stderrFd = null;
+    }
+    if (pgDataDir !== null) {
+      try {
+        rmrf(pgDataDir);
+      } catch (exc) {
+        // best effort
+      }
+      pgDataDir = null;
+    }
+    if (pgLogsDir !== null) {
+      try {
+        rmrf(pgLogsDir);
+      } catch (exc) {
+        // best effort
+      }
+      pgLogsDir = null;
     }
   }
   process.on('beforeExit', teardown);
