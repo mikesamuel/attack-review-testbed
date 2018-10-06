@@ -34,15 +34,28 @@ const { start } = require('../lib/server.js');
 const hostName = '127.0.0.1';
 const rootDir = path.resolve(path.join(__dirname, '..'));
 
+function noop() {
+  // This function body left intentionally blank.
+}
+
 const { withDbConfig, teardownDb } = (() => {
   let pending = null;
   let dbConfig = null;
+  let failure = null;
   let teardownFun = null;
 
-  function scheduleToRun(onDbAvailable) {
-    setTimeout(() => {
-      onDbAvailable(dbConfig);
-    }, 0);
+  function scheduleToRun(...onDbAvailable) {
+    for (const fun of onDbAvailable) {
+      setTimeout(fun.bind(null, failure, dbConfig), 0);
+    }
+  }
+
+  function maybeRunPending() {
+    const toNotify = pending;
+    pending = null;
+    if (toNotify) {
+      scheduleToRun(...toNotify);
+    }
   }
 
   return {
@@ -64,25 +77,25 @@ const { withDbConfig, teardownDb } = (() => {
         scheduleToRun(onDbAvailable);
       } else {
         pending = [ onDbAvailable ];
-        spinUpDatabase(({ pgSocksDir, pgPort, teardown }) => {
-          dbConfig = {
-            user: 'webfe',
-            host: pgSocksDir,
-            port: pgPort,
-            database: 'postgres',
-          };
-          process.on('beforeExit', teardown);
+        try {
+          spinUpDatabase(({ pgSocksDir, pgPort, teardown }) => {
+            dbConfig = {
+              user: 'webfe',
+              host: pgSocksDir,
+              port: pgPort,
+              database: 'postgres',
+            };
+            process.on('beforeExit', teardown);
 
-          const toNotify = pending;
-          pending = null;
-          if (toNotify) {
-            for (const fun of toNotify) {
-              scheduleToRun(fun);
-            }
-          }
+            teardownFun = teardown;
 
-          teardownFun = teardown;
-        });
+            maybeRunPending();
+          });
+        } catch (exc) {
+          teardownFun = noop;
+          failure = exc;
+          maybeRunPending();
+        }
       }
     },
   };
@@ -95,7 +108,11 @@ function withServer(onStart) {
     return 'x'.repeat(32 - str.length) + str;
   }
 
-  withDbConfig((dbConfig) => {
+  withDbConfig((dbConfigErr, dbConfig) => {
+    if (dbConfigErr) {
+      onStart(dbConfigErr, new URL('about:invalid'), noop, () => ({}));
+      return;
+    }
     let stdout = '';
     let stderr = '';
     startIntercept(process.stdout, (chunk) => {
