@@ -67,7 +67,13 @@ const { withDbConfig, teardownDb } = (() => {
           if (teardownFun) {
             teardownFun();
           }
-        }, 0);
+        },
+        // Wait a little bit.
+        // TODO: Figure out why init-hooks-test fail with errors about
+        // a connection closing hard due to the interrupting of the
+        // DB server process.
+        // ravis-ci.org/mikesamuel/attack-review-testbed/jobs/438005939#L528
+        250);
     },
     withDbConfig(onDbAvailable) {
       if (pending) {
