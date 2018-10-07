@@ -50,6 +50,7 @@ require('node-sec-patterns').authorize(require('./package.json'));
 const path = require('path');
 
 const { start } = require('./lib/server.js');
+const safepg = require('./lib/safe/pg.js');
 
 if (require.main === module) {
   const argv = [ ...process.argv ];
@@ -73,8 +74,9 @@ if (require.main === module) {
 `);
   } else {
     const [ hostName = defaultHostName, port = defaultPort, rootDir = defaultRootDir ] = argv;
+    const database = new safepg.Pool();
     const { stop } = start(
-      { hostName, port, rootDir, dbConfig: null },
+      { hostName, port, rootDir, database },
       (exc, actualPort) => {
         if (exc) {
           process.exitCode = 1;
@@ -85,7 +87,10 @@ if (require.main === module) {
           console.log(`Serving from ${ hostName }:${ actualPort } at ${ rootDir }`);
         }
       });
-    process.on('SIGINT', stop);
+    process.on('SIGINT', () => {
+      stop();
+      database.end();
+    });
   }
 }
 
