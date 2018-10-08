@@ -26,7 +26,14 @@ const { createTables, clearTables, initializeTablesWithTestData } =
 
 module.exports = (makePool) => {
   function dbIt(name, withPool, withClient) {
-    it(name, (done) => {
+    it(name, function dbTest(done) {
+      // Setting up the database takes some time.
+      // Times are in millis.
+      // eslint-disable-next-line no-magic-numbers, no-invalid-this
+      this.timeout(5000);
+      // eslint-disable-next-line no-magic-numbers, no-invalid-this
+      this.slow(500);
+
       makePool().then(
         (pool) => {
           let client = null;
