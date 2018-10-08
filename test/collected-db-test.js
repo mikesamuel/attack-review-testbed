@@ -17,15 +17,15 @@
 
 'use strict';
 
+const { after, before } = require('mocha');
 const { spinUpDatabase } = require('../scripts/run-locally.js');
+const dbTablesTest = require('./db-tables-test.js');
+const endToEndTest = require('./end-to-end-test.js');
+const { Pool } = require('../lib/safe/pg.js');
 
 function noop() {
   // This function body left intentionally blank.
 }
-
-const dbTablesTest = require('./db-tables-test.js');
-const endToEndTest = require('./end-to-end-test.js');
-const { Pool } = require('../lib/safe/pg.js');
 
 const testsThatRequireDb = [ dbTablesTest, endToEndTest ];
 
@@ -97,23 +97,24 @@ const { release, withDbConfig } = (() => {
   };
 })();
 
-let nInFlight = 0;
-for (let i = 0, { length } = testsThatRequireDb; i < length; ++i) {
-  const test = testsThatRequireDb[i];
-  ++nInFlight;
-  // eslint-disable-next-line no-loop-func
-  withDbConfig((exc, dbConfig) => {
-    test(
-      exc,
-      () => {
-        const pool = new Pool(dbConfig);
-        pool.on('error', noop);
-        return pool;
-      },
-      () => {
-        if (--nInFlight === 0) {
-          release();
+function makePoolPromise() {
+  return new Promise((resolve, reject) => {
+    withDbConfig(
+      (dbConfigErr, dbConfig) => {
+        if (dbConfigErr) {
+          reject(dbConfigErr);
+        } else {
+          resolve(new Pool(dbConfig));
         }
       });
   });
 }
+
+for (let i = 0, { length } = testsThatRequireDb; i < length; ++i) {
+  const test = testsThatRequireDb[i];
+  test(
+    makePoolPromise);
+}
+
+before(() => withDbConfig(noop));
+after(release);

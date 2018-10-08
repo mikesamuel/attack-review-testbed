@@ -18,37 +18,64 @@
 'use strict';
 
 const { expect } = require('chai');
-const { after, describe, it } = require('mocha');
+const { describe, it } = require('mocha');
 const safesql = require('safesql');
 
 const { createTables, clearTables, initializeTablesWithTestData } =
   require('../lib/db-tables.js');
 
-module.exports = (dbErr, makePool, doneWithDb) => {
+module.exports = (makePool) => {
+  function dbIt(name, withPool, withClient) {
+    it(name, (done) => {
+      makePool().then(
+        (pool) => {
+          let client = null;
+          function finish(exc) {
+            if (client) {
+              client.release();
+              client = null;
+            }
+            pool.end();
+            if (exc) {
+              return done(exc);
+            }
+            return done();
+          }
+          function finishErr(exc) {
+            finish(exc || new Error());
+          }
+
+          function usePool(exc) {
+            if (exc) {
+              finish(exc);
+              return;
+            }
+            pool.connect().then(
+              (aClient) => {
+                client = aClient;
+                withClient(client, finish, finishErr);
+              },
+              finishErr);
+          }
+
+          setTimeout(
+            () => withPool(pool, usePool, finishErr),
+            // eslint-disable-next-line no-magic-numbers
+            50);
+        },
+        (dbErr) => {
+          done(dbErr || new Error());
+        });
+    });
+  }
+
   describe('db-tables', () => {
-    after(doneWithDb);
-
-    it('createTables', (done) => {
-      if (dbErr) {
-        done(dbErr);
-        return;
-      }
-      const pool = makePool();
-      function finish(exc) {
-        pool.end();
-        if (exc) {
-          return done(exc);
-        }
-        return done();
-      }
-      function finishErr(exc) {
-        finish(exc || new Error());
-      }
-
-      function checkAccountsTable(client) {
+    dbIt(
+      'createTables',
+      (pool, finish, finishErr) => createTables(pool).then(() => finish(), finishErr),
+      (client, finish, finishErr) =>
         client.query(safesql.pg`SELECT * FROM Accounts`).then(
           ({ rowCount, fields }) => {
-            client.release();
             try {
               expect({ rowCount, fields: fields.map(({ name }) => name) })
                 .to.deep.equals({
@@ -61,32 +88,46 @@ module.exports = (dbErr, makePool, doneWithDb) => {
             }
             finish();
           },
-          (exc) => {
-            client.release();
-            finishErr(exc);
-          });
-      }
-      setTimeout(
-        () => {
-          createTables(pool).then(
-            () => {
-              pool.connect().then(
-                checkAccountsTable,
-                finishErr);
-            },
-            finishErr);
-        },
-        // eslint-disable-next-line no-magic-numbers
-        50);
-    });
+          finishErr));
 
-    it('clearTables', () => {
-      // TODO
-      expect(clearTables).to.not.equal(null);
-    });
-    it('initializeTablesWithTestData', () => {
-      // TODO
-      expect(initializeTablesWithTestData).to.not.equal(null);
-    });
+    dbIt(
+      'initializeTablesWithTestData',
+      (pool, finish, finishErr) => initializeTablesWithTestData(pool).then(() => finish(), finishErr),
+      (client, finish, finishErr) =>
+        client.query(safesql.pg`SELECT * FROM Accounts`).then(
+          ({ rowCount, fields }) => {
+            try {
+              expect({ rowCount, fields: fields.map(({ name }) => name) })
+                .to.deep.equals({
+                  rowCount: 4,
+                  fields: [ 'aid', 'displayname', 'displaynamehtml', 'created' ],
+                });
+            } catch (exc) {
+              finish(exc);
+              return;
+            }
+            finish();
+          },
+          finishErr));
+
+    dbIt(
+      'clearTables',
+      (pool, finish, finishErr) => clearTables(pool).then(() => finish(), finishErr),
+      (client, finish, finishErr) =>
+        client.query(safesql.pg`SELECT * FROM Accounts`).then(
+          ({ rowCount, fields }) => {
+            try {
+              expect({ rowCount, fields: fields.map(({ name }) => name) })
+                .to.deep.equals({
+                  rowCount: 0,
+                  fields: [ 'aid', 'displayname', 'displaynamehtml', 'created' ],
+                });
+            } catch (exc) {
+              finish(exc);
+              return;
+            }
+            finish();
+          },
+          finishErr));
   });
 };

@@ -20,7 +20,7 @@
 /* eslint id-blacklist: 0, no-multi-str: 0, no-magic-numbers: 0 */
 
 const { expect } = require('chai');
-const { after, describe, it } = require('mocha');
+const { describe, it } = require('mocha');
 
 const path = require('path');
 const process = require('process');
@@ -60,7 +60,7 @@ function expects(assertions, done) {
   done();
 }
 
-module.exports = (dbConfigErr, makePool, doneWithDb) => {
+module.exports = (makePool) => {
   function withServer(onStart) {
     let i = 0;
 
@@ -71,37 +71,38 @@ module.exports = (dbConfigErr, makePool, doneWithDb) => {
       return 'x'.repeat(32 - str.length) + str;
     }
 
-    if (dbConfigErr) {
-      onStart(dbConfigErr, new URL('about:invalid'), noop, () => ({}));
-      return;
-    }
-    let stdout = '';
-    let stderr = '';
-    startIntercept(process.stdout, (chunk) => {
-      stdout += chunk;
-    });
-    startIntercept(process.stderr, (chunk) => {
-      stderr += chunk;
-    });
-    const database = makePool();
-    const { stop } = start(
-      { hostName, port: 0, rootDir, database },
-      (err, actualPort) => {
-        const url = new URL(`http://${ hostName }:${ actualPort }`);
-        onStart(
-          err, url,
-          () => {
-            try {
-              stop();
-              database.end();
-            } finally {
-              stopIntercept(process.stderr);
-              stopIntercept(process.stdout);
-            }
+    makePool().then(
+      (database) => {
+        let stdout = '';
+        let stderr = '';
+        startIntercept(process.stdout, (chunk) => {
+          stdout += chunk;
+        });
+        startIntercept(process.stderr, (chunk) => {
+          stderr += chunk;
+        });
+        const { stop } = start(
+          { hostName, port: 0, rootDir, database },
+          (err, actualPort) => {
+            const url = new URL(`http://${ hostName }:${ actualPort }`);
+            onStart(
+              err, url,
+              () => {
+                try {
+                  stop();
+                  database.end();
+                } finally {
+                  stopIntercept(process.stderr);
+                  stopIntercept(process.stdout);
+                }
+              },
+              () => ({ stderr, stdout }));
           },
-          () => ({ stderr, stdout }));
+          notReallyUnguessable);
       },
-      notReallyUnguessable);
+      (dbConfigErr) => {
+        onStart(dbConfigErr, new URL('about:invalid'), noop, () => ({}));
+      });
   }
 
   function serverTest(testName, testFun) {
@@ -134,8 +135,6 @@ module.exports = (dbConfigErr, makePool, doneWithDb) => {
   }
 
   describe('end-to-end', () => {
-    after(doneWithDb);
-
     serverTest('GET / OK', (baseUrl, done, logs) => {
       request(
         new URL('/', baseUrl).href,
