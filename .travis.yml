@@ -17,6 +17,6 @@ services:
   - postgresql
 
 before_script:
-  - export PATH=/usr/lib/postgresql/10/bin:"$PATH":
+  - 'export PATH=/usr/lib/postgresql/10/bin:"$PATH"'
 script:        ./scripts/validate.sh
 after_success: npm run coveralls
