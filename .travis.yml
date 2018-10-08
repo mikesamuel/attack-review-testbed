@@ -9,8 +9,10 @@ node_js:
 sudo: false
 
 addons:
-  postgresql: "10.5"
-
+  postgresql: "10"
+  packages:
+    - postgresql-10
+    - postgresql-client-10
 services:
   - postgresql
 
