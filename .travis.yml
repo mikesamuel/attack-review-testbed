@@ -8,15 +8,8 @@ node_js:
 # Use faster Docker architecture on Travis.
 sudo: false
 
-addons:
-  postgresql: "9.6.6"
-#  packages:
-#    - postgresql-10
-#    - postgresql-client-10
 services:
   - postgresql
-#before_script:
-#  - 'export PATH=/usr/lib/postgresql/10/bin:"$PATH"'
 
 script:        ./scripts/validate.sh
 after_success: npm run coveralls
