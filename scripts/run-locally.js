@@ -47,7 +47,7 @@ function x(command, ...args) {
     });
   if (status || signal || error) {
     process.exitCode = 1;
-    throw new Error(`Command ${ command } failed: ${ JSON.stringify({ status, signal, error }) }`);
+    throw new Error(`Command ${ command } ${ args.join(' ') } failed: ${ JSON.stringify({ status, signal, error }) }`);
   }
   return stdout;
 }
