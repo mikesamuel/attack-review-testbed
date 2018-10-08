@@ -8,6 +8,9 @@ node_js:
 # Use faster Docker architecture on Travis.
 sudo: false
 
+addons:
+  postgresql: "10.5"
+
 services:
   - postgresql
 
