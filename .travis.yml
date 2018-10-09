@@ -11,5 +11,5 @@ sudo: false
 addons:
   postgresql: "9.6"
 
-script:        ./scripts/validate.sh
-after_success: npm run coveralls
+script:        travis_retry ./scripts/validate.sh
+after_success: travis_retry npm run coveralls
