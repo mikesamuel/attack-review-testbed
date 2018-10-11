@@ -26,7 +26,8 @@ const path = require('path');
 const process = require('process');
 const request = require('request');
 const { URL } = require('url');
-const { startIntercept, stopIntercept } = require('capture-console');
+const { startCapture, startIntercept, stopCapture, stopIntercept } = require('capture-console');
+const { clearTables, initializeTablesWithTestData } = require('../lib/db-tables.js');
 
 const { start } = require('../lib/server.js');
 
@@ -61,7 +62,7 @@ function expects(assertions, done) {
 }
 
 module.exports = (makePool) => {
-  function withServer(onStart) {
+  function withServer(onStart, { cannedData = true }) {
     let i = 0;
 
     // Substitute for our nonce generator, a function that produces predictable
@@ -71,14 +72,37 @@ module.exports = (makePool) => {
       return 'x'.repeat(32 - str.length) + str;
     }
 
-    makePool().then(
+    const quiet = true;
+    const startTrapLog = quiet ? startIntercept : startCapture;
+    const stopTrapLog = quiet ? stopIntercept : stopCapture;
+
+    function withPool() {
+      return new Promise((resolve, reject) => {
+        makePool().then(
+          (pool) => {
+            const setup = cannedData ? initializeTablesWithTestData : clearTables;
+            setup(pool).then(
+              () => {
+                resolve(pool);
+              },
+              (exc) => {
+                pool.end();
+                reject(exc);
+              });
+          },
+          reject);
+      });
+    }
+
+
+    withPool().then(
       (database) => {
         let stdout = '';
         let stderr = '';
-        startIntercept(process.stdout, (chunk) => {
+        startTrapLog(process.stdout, (chunk) => {
           stdout += chunk;
         });
-        startIntercept(process.stderr, (chunk) => {
+        startTrapLog(process.stderr, (chunk) => {
           stderr += chunk;
         });
         const { stop } = start(
@@ -92,8 +116,8 @@ module.exports = (makePool) => {
                   stop();
                   database.end();
                 } finally {
-                  stopIntercept(process.stderr);
-                  stopIntercept(process.stdout);
+                  stopTrapLog(process.stderr);
+                  stopTrapLog(process.stdout);
                 }
               },
               () => ({ stderr, stdout }));
@@ -105,39 +129,42 @@ module.exports = (makePool) => {
       });
   }
 
-  function serverTest(testName, testFun) {
+  function serverTest(testName, testFun, options = {}) {
     it(testName, (done) => {
-      withServer((startErr, url, stop, logs) => {
-        let closed = false;
-        function closeAndEnd(closeErr) {
-          if (!closed) {
-            closed = true;
-            stop(closeErr);
-            if (closeErr) {
-              return done(closeErr);
+      withServer(
+        (startErr, url, stop, logs) => {
+          let closed = false;
+          function closeAndEnd(closeErr) {
+            if (!closed) {
+              closed = true;
+              stop(closeErr);
+              if (closeErr) {
+                return done(closeErr);
+              }
+              return done();
             }
-            return done();
+            return null;
           }
-          return null;
-        }
-        if (startErr) {
-          closeAndEnd(startErr);
-          return;
-        }
-        try {
-          testFun(url, closeAndEnd, logs);
-        } catch (exc) {
-          closeAndEnd(exc);
-          throw exc;
-        }
-      });
+          if (startErr) {
+            closeAndEnd(startErr);
+            return;
+          }
+          try {
+            testFun(url, closeAndEnd, logs);
+          } catch (exc) {
+            closeAndEnd(exc);
+            throw exc;
+          }
+        },
+        options);
     });
   }
 
   describe('end-to-end', () => {
     serverTest('GET / OK', (baseUrl, done, logs) => {
+      const homePageUrl = `/?now=${ Number(new Date('2018-10-12 12:00:00')) }`;
       request(
-        new URL('/', baseUrl).href,
+        new URL(homePageUrl, baseUrl).href,
         (err, response, body) => expects(
           () => {
             expect({
@@ -149,17 +176,53 @@ module.exports = (makePool) => {
               err: null,
               body: '<!DOCTYPE html><html><head><title>Attack Review Testbed</title>\
 <script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
+<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
 </head><body>\
-TODO: write me, lazy programmer\
+<div class="banner view-as-public"></div>\
+<h1>Recent Posts</h1>\
+<ol class="posts">\
+\
+<li>\
+<span class="author name">Ada</span>\
+<span class="created">a week ago</span>\
+<div class="body">Hi!  My name is <b>Ada</b>.  Nice to meet you!</div>\
+</li>\
+\
+<li>\
+<span class="author name">Bob</span>\
+<span class="created">6 days ago</span>\
+<div class="body">Ada, !</div>\
+</li>\
+\
+<li>\
+<span class="author name"><b>D</b>eb</span>\
+<span class="created">5 days ago</span>\
+<div class="body"><b>¡Hi, all!</b></div>\
+</li>\
+\
+<li>\
+<span class="author name"><font color="green">Fae</font></span>\
+<span class="created">3 days ago</span>\
+<div class="body">Sigh!  Yet another Facebook knockoff without any users.</div>\
+</li>\
+\
+<li>\
+<span class="author name"><font color="green">Fae</font></span>\
+<span class="created">2 days ago</span>\
+<div class="body">(It is probably insecure)</div>\
+</li>\
+\
+</ol>\
 </body></html>',
               logs: {
                 stderr: '',
-                stdout: 'GET /\n',
+                stdout: `GET ${ homePageUrl }\n`,
               },
               statusCode: 200,
             });
             expect(sessionCookieForResponse(response)).to.not.equal(void 0);
-          }, done));
+          }, done),
+        { cannedData: true });
     });
 
     // A static HTML file under ../static
@@ -185,7 +248,7 @@ TODO: write me, lazy programmer\
           }, done));
     });
 
-    serverTest('GET /no-such-file OK', (baseUrl, done, logs) => {
+    serverTest('GET /no-such-file 404', (baseUrl, done, logs) => {
       const target = new URL('/no-such-file', baseUrl).href;
       request(
         target,
@@ -202,6 +265,7 @@ TODO: write me, lazy programmer\
               body: `<!DOCTYPE html><html><head><title>File Not Found:
 /no-such-file</title>\
 <script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
+<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
 </head><body><p>Oops!  Nothing at
 ${ target }</p></body></html>`,
               logs: {
@@ -229,7 +293,10 @@ ${ target }</p></body></html>`,
               // eslint-disable-next-line quotes
               body: `<!DOCTYPE html><html><head><title>Database Echo</title>\
 <script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
-</head><body><table>\
+<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
+</head><body>\
+<h1>Echo</h1>\
+<table class="echo">\
 <tr><th>a&#34;</th><th>foo</th><th>baz</th></tr>\
 <tr><td>b&#39;</td><td>bar</td><td></td></tr>\
 </table></body></html>`,

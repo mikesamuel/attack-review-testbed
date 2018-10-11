@@ -1,6 +1,21 @@
-doctype html
-html
-  head
-    title Attack Review Testbed
-    script(nonce=cspNonce src='/common.js')
-  body TODO: write me, lazy programmer
+mixin title()
+  | Attack Review Testbed
+
+mixin body()
+  if viewAsPublic
+    .banner.view-as-public
+  h1
+    | Recent Posts
+  ol.posts
+    for post in posts
+      li
+        if post.authorName
+          span.author.name
+            = post.authorName
+        if post.created
+          span.created
+            = fmtDate(post.created)
+          div.body=(post.body || '')
+
+
+include envelope.pug

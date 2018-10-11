@@ -1,16 +1,15 @@
-doctype html
-html
-  head
-    title Database Echo
-    script(nonce=cspNonce src='/common.js')
-  body
-    if failure
-      .failure= failure.message
-    else
-      table
-        tr
-          each col in result
-            th= col[0]
-        tr
-          each col in result
-            td= col[1]
+mixin title()
+  | Database Echo
+
+mixin body()
+  h1
+    | Echo
+  table.echo
+    tr
+      each col in result
+        th= col[0]
+    tr
+      each col in result
+        td= col[1]
+
+include envelope.pug

@@ -49,7 +49,7 @@ describe('sensitive-module-hook', () => {
             result: 'child_process',
             stderr: (
               '../lib/framework/module-hooks/sensitive-module-hook.js:' +
-              ' Blocking require("child_process") by unsafe.js\n' +
+              ' Blocking require("child_process") by unsafe.js\n\n' +
               '\tTry to use safe/child_process instead.  If that doesn\'t work, ask @security-oncall\n'),
             stdout: '',
           });
@@ -113,7 +113,7 @@ describe('sensitive-module-hook', () => {
             result: require.resolve('../lib/framework/module-hooks/innocuous.js'),
             stderr: (
               '../lib/framework/module-hooks/sensitive-module-hook.js:' +
-              ' Blocking require("child_process") by unsafe.js\n' +
+              ' Blocking require("child_process") by unsafe.js\n\n' +
               '\tTry to use safe/child_process instead.  If that doesn\'t work, ask @security-oncall\n'),
             stdout: '',
           });

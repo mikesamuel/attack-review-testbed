@@ -173,6 +173,7 @@ function spinUpDatabase(onceDatabaseStarted) {
           stdio: [ 'ignore', stdoutFd, stderrFd ],
         });
       console.log(`Database starting on ${ pgSockFile } and logging to ${ pgLogsDir }.std{err,out}`);
+      console.log(`To connect locally: psql -h ${ path.dirname(pgSockFile) } -p ${ pgPort } postgres webfe`);
     }
 
     // Wait until the socket file is apparent in the file system.

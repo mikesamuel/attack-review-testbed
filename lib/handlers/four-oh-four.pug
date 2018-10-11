@@ -1,13 +1,12 @@
-doctype html
-html
-  head
-    title
-      | File Not Found:
-      |
-      = reqUrl.pathname
-    script(nonce=cspNonce src='/common.js')
-  body
-    p
-      | Oops!  Nothing at
-      |
-      = reqUrl
+mixin title()
+  | File Not Found:
+  |
+  = reqUrl.pathname
+
+mixin body()
+  p
+    | Oops!  Nothing at
+    |
+    = reqUrl
+
+include envelope.pug

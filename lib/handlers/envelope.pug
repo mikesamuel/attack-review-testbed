@@ -1,0 +1,9 @@
+doctype html
+html
+  head
+    title
+      +title()
+    script(nonce=cspNonce src='/common.js')
+    link(rel='stylesheet' href='/styles.css' nonce=cspNonce)
+  body
+    +body()

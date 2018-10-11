@@ -1,0 +1,55 @@
+body { font-family: Arial }
+
+body:after { font-size: 25%; content: "Terms of Service: Don't!" }
+
+h1 {
+    font-size: 125%;
+    color: #07889b;
+    border-left: .25em solid #66b9bf;
+    padding-left: .25em;
+}
+
+ol.posts {
+    padding: 0;
+}
+ol.posts > li {
+    display: block;
+    list-style: none;
+    margin-bottom: .5em;
+}
+ol.posts > li > .author.name {
+    font-size: 50%;
+    font-style: italic;
+}
+ol.posts > li > .author.name:after { content: " said " }
+ol.posts > li > .created {
+    font-size: 50%;
+    font-style: italic;
+}
+ol.posts > li > .body {
+    border-left: .25em solid #66b9bf;
+    padding-left: .25em;
+    margin-left: .25em;
+}
+
+table.echo {
+    border-spacing: 0;
+    border-collapse: collapse;
+}
+table.echo > tbody > tr > th {
+    color: #07889b;
+    border: 2px solid #66b9bf;
+    border: 2px solid #66b9bf;
+    border: 2px solid #66b9bf;
+}
+table.echo > tbody > tr > td,
+table.echo > tbody > tr > th {
+    padding: 2px;
+    margin: 0;
+}
+
+table.echo > tbody > tr > td {
+    border-left: 2px solid #bbb;
+    border-right: 2px solid #bbb;
+    border-bottom: 2px solid #bbb;
+}

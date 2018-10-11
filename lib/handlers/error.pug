@@ -1,10 +1,10 @@
-doctype html
-html
-  head
-    title Error
-    script(nonce=cspNonce src='/common.js')
-  body
-    if isProduction
-      | Something went wrong
-    else
-      = String(exc)
+mixin title()
+  | Error
+
+mixin body()
+  if isProduction
+    | Something went wrong
+  else
+    = String(exc)
+
+include envelope.pug
