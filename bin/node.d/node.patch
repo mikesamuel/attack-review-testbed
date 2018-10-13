@@ -1,3 +1,32 @@
+diff --git a/deps/v8/src/bootstrapper.cc b/deps/v8/src/bootstrapper.cc
+index a864789a03..637f33905b 100644
+--- a/deps/v8/src/bootstrapper.cc
++++ b/deps/v8/src/bootstrapper.cc
+@@ -5214,6 +5214,11 @@ Genesis::Genesis(
+     if (!InstallDebuggerNatives()) return;
+   }
+ 
++  if (FLAG_disallow_code_generation_from_strings) {
++    native_context()->set_allow_code_gen_from_strings(
++        isolate->heap()->false_value());
++  }
++
+   ConfigureUtilsObject(context_type);
+ 
+   // Check that the script context table is empty except for the 'this' binding.
+diff --git a/deps/v8/src/flag-definitions.h b/deps/v8/src/flag-definitions.h
+index a801b221aa..6adb6ade8c 100644
+--- a/deps/v8/src/flag-definitions.h
++++ b/deps/v8/src/flag-definitions.h
+@@ -753,6 +753,8 @@ DEFINE_BOOL(expose_trigger_failure, false, "expose trigger-failure extension")
+ DEFINE_INT(stack_trace_limit, 10, "number of stack frames to capture")
+ DEFINE_BOOL(builtins_in_stack_traces, false,
+             "show built-in functions in stack traces")
++DEFINE_BOOL(disallow_code_generation_from_strings, false,
++            "disallow eval and friends")
+ 
+ // builtins.cc
+ DEFINE_BOOL(allow_unsafe_function_constructor, false,
 diff --git a/lib/internal/module.js b/lib/internal/module.js
 index e19b11c7a7..dcd1a9257c 100644
 --- a/lib/internal/module.js

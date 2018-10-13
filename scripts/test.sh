@@ -27,18 +27,20 @@ fi
 if [[ "$TRAVIS" != "true" ]]; then
     # Sanity check the server by starting it, and then tell it to hangup.
     echo Starting server
-    ./main.js &
+    ./main.js --noinitdb &
     main_pid="$!"
     # Spawn a fire-and-forget subprocess to stop the server from listening forever.
     (
-        sleep 1
-        kill -s INT "$main_pid" >& /dev/null
+        sleep 3
+        kill -s INT "$main_pid"
     ) &
     hup_pid="$!"
     wait "$main_pid"  # Wait for the server to exit
     server_result="$?"
     kill "$hup_pid" >& /dev/null || true
     if [[ "$server_result" != "0" ]]; then
+        echo 'FAILED: Server smoke test'
         exit "$server_result"
     fi
+    echo 'PASSED: Server smoke test'
 fi

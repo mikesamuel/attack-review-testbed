@@ -30,6 +30,9 @@ describe('sensitive-module-hook', () => {
       'ids': [ './may-use-childprocess.js' ],
     },
     'fs': null,
+    'process': {
+      mode: 'report-only',
+    },
     './unsafe.js': './may-use-unsafe.js',
   };
   describe('reportOnly', () => {
@@ -49,7 +52,7 @@ describe('sensitive-module-hook', () => {
             result: 'child_process',
             stderr: (
               '../lib/framework/module-hooks/sensitive-module-hook.js:' +
-              ' Blocking require("child_process") by unsafe.js\n\n' +
+              ' Reporting require("child_process") by unsafe.js\n\n' +
               '\tTry to use safe/child_process instead.  If that doesn\'t work, ask @security-oncall\n'),
             stdout: '',
           });
@@ -59,6 +62,16 @@ describe('sensitive-module-hook', () => {
           .to.deep.equals({
             result: 'path',
             stderr: '',
+            stdout: '',
+          });
+      });
+      it('mode report-only', () => {
+        expect(runHook(hook, 'uses-process.js', 'process'))
+          .to.deep.equals({
+            result: 'process',
+            stderr: (
+              '../lib/framework/module-hooks/sensitive-module-hook.js:' +
+              ' Reporting require("process") by uses-process.js\n'),
             stdout: '',
           });
       });
@@ -78,7 +91,7 @@ describe('sensitive-module-hook', () => {
             result: './unsafe.js',
             stderr: (
               '../lib/framework/module-hooks/sensitive-module-hook.js:' +
-              ' Blocking require("./unsafe.js") by unsafe.js\n'),
+              ' Reporting require("./unsafe.js") by unsafe.js\n'),
             stdout: '',
           });
       });
@@ -133,6 +146,16 @@ describe('sensitive-module-hook', () => {
           .to.deep.equals({
             result: 'path',
             stderr: '',
+            stdout: '',
+          });
+      });
+      it('mode report-only', () => {
+        expect(runHook(hook, 'uses-process.js', 'process'))
+          .to.deep.equals({
+            result: 'process',
+            stderr: (
+              '../lib/framework/module-hooks/sensitive-module-hook.js:' +
+              ' Reporting require("process") by uses-process.js\n'),
             stdout: '',
           });
       });

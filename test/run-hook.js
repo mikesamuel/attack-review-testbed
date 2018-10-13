@@ -24,6 +24,10 @@ function runHook(hook, source, target) {
   const sourceId = module.id.replace(/[^/]+\/[^/]+$/, source);
   const sourceFile = path.join(__dirname, source);
 
+  if (typeof hook.flush === 'function') {
+    hook.flush();
+  }
+
   const sentinel = {};
   let thrown = sentinel;
   let result = null;
@@ -34,6 +38,10 @@ function runHook(hook, source, target) {
         result = hook(sourceFile, sourceId, target, require.resolve);
       } catch (exc) {
         thrown = exc;
+      } finally {
+        if (typeof hook.flush === 'function') {
+          hook.flush();
+        }
       }
     });
   });

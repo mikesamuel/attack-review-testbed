@@ -49,12 +49,31 @@
     ],
     "process": {
       "advice": "Process is easy to misuse.  If you need access to process metadata, thread it through from main.js.  Changes the process's environment should go through the docker wrapper.  Contact security-oncall@ if these options don't work for you.",
+      "mode": "enforce",
       "ids": [
         "main.js",
         "lib/framework/builtin-module-ids.js",
         "lib/framework/is-prod.js",
         "lib/framework/lockdown.js",
-        "lib/server.js"
+        "lib/server.js",
+        "browser-process-hrtime/index.js",
+        "clean-css/lib/reader/rewrite-url.js",
+        "clean-css/lib/writer/source-maps.js",
+        "debug/src/index.js",
+        "debug/src/node.js",
+        "depd",
+        "iconv-lite/lib/index.js",
+        "jsdom/lib/jsdom/browser/Window.js",
+        "mime/mime.js",
+        "pg/lib/client.js",
+        "pg/lib/connection-parameters.js",
+        "pg/lib/defaults.js",
+        "pg/lib/index.js",
+        "pg/lib/query.js",
+        "pgpass/lib/helper.js",
+        "pg-pool/index.js",
+        "resolve/lib/core.js",
+        "uglify-js"
       ]
     },
     "node_modules/pirates/lib/index.js": {

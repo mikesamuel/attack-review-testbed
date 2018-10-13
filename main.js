@@ -1,4 +1,4 @@
-#!/usr/bin/env ./bin/node --cjs-loader ./lib/init-hooks.js
+#!/usr/bin/env ./bin/node --cjs-loader ./lib/init-hooks.js --disallow_code_generation_from_strings
 
 /**
  * @license
@@ -78,13 +78,19 @@ if (isMain) {
   // __filename
   argv.shift();
 
+  let initDb = true;
+  if (argv[0] === '--noinitdb') {
+    argv.shift();
+    initDb = false;
+  }
+
   const defaultHostName = 'localhost';
   const defaultPort = 8080;
   const defaultRootDir = path.resolve(__dirname);
 
   if (argv[0] === '--help') {
     // eslint-disable-next-line no-console
-    console.log(`Usage: ${ __filename } [<hostName> [<port> [<rootdir>]]]
+    console.log(`Usage: ${ __filename } [--noinitdb] [<hostName> [<port> [<rootdir>]]]
 
 <hostname>: The hostname the service is typically reached under.  Default ${ defaultHostName }
 <port>:     The local port to listen on.  Default ${ defaultPort }
@@ -111,20 +117,26 @@ if (isMain) {
     // eslint-disable-next-line no-inner-declarations
     function tearDown() {
       stop();
-      database.end();
+      try {
+        database.end();
+      } catch (exc) {
+        // Best effort.
+      }
     }
     process.on('SIGINT', tearDown);
 
-    initializeTablesWithTestData(database).then(
-      () => {
-        // eslint-disable-next-line no-console
-        console.log('Database seeded with test data');
-      },
-      (exc) => {
-        // eslint-disable-next-line no-console
-        console.error(exc);
-        tearDown();
-      });
+    if (initDb) {
+      initializeTablesWithTestData(database).then(
+        () => {
+          // eslint-disable-next-line no-console
+          console.log('Database seeded with test data');
+        },
+        (exc) => {
+          // eslint-disable-next-line no-console
+          console.error(exc);
+          tearDown();
+        });
+    }
   }
 }
 

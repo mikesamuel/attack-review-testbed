@@ -81,6 +81,6 @@ describe('lockdown', () => {
     const unprivilegedRequireModule = require.cache[require.resolve(
       '../lib/framework/unprivileged-require.js')];
     expect(unprivilegedRequireModule.parent.id).to.equal(
-      require.resolve('../lib/framework/lockdown.js'));
+      require.resolve('../lib/framework/delicate-globals-rewrite.js'));
   });
 });
