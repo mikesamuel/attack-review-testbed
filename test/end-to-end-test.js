@@ -203,7 +203,7 @@ module.exports = (makePool) => {
 <li>\
 <span class="author name"><font color="green">Fae</font></span>\
 <span class="created">3 days ago</span>\
-<div class="body">Sigh!  Yet another Facebook knockoff without any users.</div>\
+<div class="body">Sigh!  Yet another <a href="//Facebook.com">Facebook.com</a> knockoff without any users.</div>\
 </li>\
 \
 <li>\
