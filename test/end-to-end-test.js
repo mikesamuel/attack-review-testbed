@@ -170,50 +170,47 @@ module.exports = (makePool) => {
             expect({
               err,
               statusCode: response && response.statusCode,
-              body,
+              body: body.replace(/<li\b/g, '\n<li').split(/\n/g),
               logs: logs(),
             }).to.deep.equal({
               err: null,
-              body: '<!DOCTYPE html><html><head><title>Attack Review Testbed</title>\
+              body: [
+                '<!DOCTYPE html><html><head><title>Attack Review Testbed</title>\
 <script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
 <link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
 </head><body>\
 <div class="banner view-as-public"></div>\
 <h1>Recent Posts</h1>\
-<ol class="posts">\
-\
-<li>\
+<ol class="posts">',
+                '<li>\
 <span class="author name">Ada</span>\
 <span class="created">a week ago</span>\
 <div class="body">Hi!  My name is <b>Ada</b>.  Nice to meet you!</div>\
-</li>\
-\
-<li>\
-<span class="author name">Bob</span>\
+</li>',
+                '<li>\
+<a class="author name" href="about:invalid#TrustedURL">Bob</a>\
 <span class="created">6 days ago</span>\
 <div class="body">Ada, !</div>\
-</li>\
-\
-<li>\
-<span class="author name"><b>D</b>eb</span>\
+</li>',
+                '<li>\
+<a class="author name" href="https://deb.example.com/"><b>D</b>eb</a>\
 <span class="created">5 days ago</span>\
 <div class="body"><b>¡Hi, all!</b></div>\
-</li>\
-\
-<li>\
-<span class="author name"><font color="green">Fae</font></span>\
+</li>',
+                '<li>\
+<a class="author name" href="mailto:fae@fae.fae"><font color="green">Fae</font></a>\
 <span class="created">3 days ago</span>\
 <div class="body">Sigh!  Yet another <a href="//Facebook.com">Facebook.com</a> knockoff without any users.</div>\
-</li>\
-\
-<li>\
-<span class="author name"><font color="green">Fae</font></span>\
+</li>',
+                '<li>\
+<a class="author name" href="mailto:fae@fae.fae"><font color="green">Fae</font></a>\
 <span class="created">2 days ago</span>\
 <div class="body">(It is probably insecure)</div>\
 </li>\
 \
 </ol>\
 </body></html>',
+              ],
               logs: {
                 stderr: '',
                 stdout: `GET ${ homePageUrl }\n`,

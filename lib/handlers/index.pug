@@ -10,8 +10,12 @@ mixin body()
     for post in posts
       li
         if post.authorName
-          span.author.name
-            = post.authorName
+          if post.authorUrl
+            a.author.name(href=post.authorUrl)
+              = post.authorName
+          else
+            span.author.name
+              = post.authorName
         if post.created
           span.created
             = fmtDate(post.created)

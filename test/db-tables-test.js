@@ -87,7 +87,7 @@ module.exports = (makePool) => {
               expect({ rowCount, fields: fields.map(({ name }) => name) })
                 .to.deep.equals({
                   rowCount: 0,
-                  fields: [ 'aid', 'displayname', 'displaynamehtml', 'created' ],
+                  fields: [ 'aid', 'displayname', 'displaynamehtml', 'publicurl', 'created' ],
                 });
             } catch (exc) {
               finish(exc);
@@ -107,7 +107,7 @@ module.exports = (makePool) => {
               expect({ rowCount, fields: fields.map(({ name }) => name) })
                 .to.deep.equals({
                   rowCount: 4,
-                  fields: [ 'aid', 'displayname', 'displaynamehtml', 'created' ],
+                  fields: [ 'aid', 'displayname', 'displaynamehtml', 'publicurl', 'created' ],
                 });
             } catch (exc) {
               finish(exc);
@@ -127,7 +127,7 @@ module.exports = (makePool) => {
               expect({ rowCount, fields: fields.map(({ name }) => name) })
                 .to.deep.equals({
                   rowCount: 0,
-                  fields: [ 'aid', 'displayname', 'displaynamehtml', 'created' ],
+                  fields: [ 'aid', 'displayname', 'displaynamehtml', 'publicurl', 'created' ],
                 });
             } catch (exc) {
               finish(exc);
