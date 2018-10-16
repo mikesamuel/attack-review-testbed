@@ -1,0 +1,28 @@
+mixin post(post)
+  if post.authorName
+    if post.authorUrl
+      a.author.name(href=post.authorUrl)
+        = post.authorName
+    else
+     span.author.name
+       = post.authorName
+  if post.created
+    span.created
+      = fmtDate(post.created)
+  div.body=(post.body || '')
+  if post.images && post.images.length
+    div.images
+      each image in post.images
+        img(src=image)
+
+mixin post_form(preview)
+  form(id="post-form" action="/upload" enctype="multipart/form-data" method="POST")
+    textarea(name="body" value=(preview ? preview.body : ''))
+    each image in preview.images
+      div.imagepreview
+        input(type="checkbox" checked=!(preview.deletes && preview.deletes[image]) name="imagepath" value=image)
+    input(type="file" name="upload" multiple="multiple")
+    br
+    button(type="submit" name="preview" value=true form="post-form") Preview
+    = '|'
+    button(type="submit" form="post-form") Post

@@ -1,3 +1,5 @@
+include includes/post-common.pug
+
 mixin title()
   | Attack Review Testbed
 
@@ -9,17 +11,6 @@ mixin body()
   ol.posts
     for post in posts
       li
-        if post.authorName
-          if post.authorUrl
-            a.author.name(href=post.authorUrl)
-              = post.authorName
-          else
-            span.author.name
-              = post.authorName
-        if post.created
-          span.created
-            = fmtDate(post.created)
-          div.body=(post.body || '')
+        +post(post)
 
-
-include envelope.pug
+include includes/envelope.pug
