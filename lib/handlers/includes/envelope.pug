@@ -6,4 +6,12 @@ html
     script(nonce=cspNonce src='/common.js')
     link(rel='stylesheet' href='/styles.css' nonce=cspNonce)
   body
+    if reqUrl.pathname !== '/login'
+      .userfloat
+        if currentAccount
+          span.user.name
+            = currentAccount.displayName
+          a.logoutlink(href="/logout") logout
+        else
+          a.loginlink(href="/login") login
     +body()

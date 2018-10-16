@@ -22,6 +22,10 @@
 const { expect } = require('chai');
 const { describe, it } = require('mocha');
 
+// Make sure that we stub out modules that interact badly with
+// some of our protective mechanisms
+require('./main-test.js');
+
 const path = require('path');
 const process = require('process');
 const request = require('request');
@@ -51,14 +55,19 @@ function sessionCookieForResponse({ headers }) {
   return void 0;
 }
 
-function expects(assertions, done) {
+function expects(assertions, reject, next) {
   try {
     assertions();
   } catch (exc) {
-    done(exc);
+    reject(exc);
     return;
   }
-  done();
+  if (next) {
+    // eslint-disable-next-line callback-return
+    next();
+  } else {
+    reject();
+  }
 }
 
 module.exports = (makePool) => {
@@ -179,6 +188,7 @@ module.exports = (makePool) => {
 <script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
 <link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
 </head><body>\
+<div class="userfloat"><a class="loginlink" href="/login">login</a></div>\
 <div class="banner view-as-public"></div>\
 <h1>Recent Posts</h1>\
 <ol class="posts">',
@@ -249,6 +259,10 @@ module.exports = (makePool) => {
       const target = new URL('/no-such-file', baseUrl).href;
       request(
         target,
+        {
+          // Prevents request from complaining that the status is not 200.
+          simple: false,
+        },
         (err, response, body) => expects(
           () => {
             expect({
@@ -263,7 +277,10 @@ module.exports = (makePool) => {
 /no-such-file</title>\
 <script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
 <link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
-</head><body><p>Oops!  Nothing at
+</head><body>\
+<div class="userfloat"><a class="loginlink" href="/login">login</a></div>\
+<h1>404</h1>\
+<p>Oops!  Nothing at
 ${ target }</p></body></html>`,
               logs: {
                 stderr: '',
@@ -292,6 +309,7 @@ ${ target }</p></body></html>`,
 <script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
 <link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
 </head><body>\
+<div class="userfloat"><a class="loginlink" href="/login">login</a></div>\
 <h1>Echo</h1>\
 <table class="echo">\
 <tr><th>a&#34;</th><th>foo</th><th>baz</th></tr>\
@@ -305,6 +323,142 @@ ${ target }</p></body></html>`,
               },
             });
           }, done));
+    });
+
+    serverTest('GET /login OK', (baseUrl, done, logs) => {
+      // Test the login flow
+      // 1. Request the login page.
+      // 2. Submit the form with an email.
+      // 3. Redirect to a page and notice that the login link now has a username.
+
+      const loginUrl = new URL('/login?cont=/echo', baseUrl).href;
+      const redirectLocation = new URL('/echo', baseUrl).href;
+      request(
+        loginUrl,
+        // eslint-disable-next-line no-use-before-define
+        onInitialGet);
+
+      function onInitialGet(err, response, body) {
+        expects(
+          () => {
+            expect({
+              err,
+              statusCode: response && response.statusCode,
+              body,
+              logs: logs(),
+            }).to.deep.equal({
+              err: null,
+              statusCode: 200,
+              // eslint-disable-next-line quotes
+              body: `<!DOCTYPE html><html><head>\
+<title>Login</title>\
+<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
+<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
+</head><body>\
+<h1>Login</h1>\
+<form method="POST" action="/login">\
+<label for="email">Email</label><input name="email"/>\
+<br/>\
+There is no password input since testing a credential store
+is out of scope for this attack review, and requiring
+credentials or using a federated service like oauth would
+complicate running locally and testing as different users.\
+<br/>\
+<button>Login</button>\
+<button formaction="/" formmethod="GET" formnovalidate="formnovalidate">Cancel</button>\
+</form></body></html>`,
+              logs: {
+                stderr: '',
+                stdout: 'GET /login?cont=/echo\n',
+              },
+            });
+          },
+          done,
+          () => {
+            request.post(
+              loginUrl,
+              {
+                form: {
+                  email: 'foo@bar.com',
+                },
+                headers: {
+                  'Cookie': `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
+                },
+                simple: false,
+              },
+              // eslint-disable-next-line no-use-before-define
+              onPostOfForm);
+          });
+      }
+
+      function onPostOfForm(err, response, body) {
+        expects(
+          () =>
+            expect({
+              err,
+              statusCode: response && response.statusCode,
+              location: response && response.headers.location,
+              body,
+              logs: logs(),
+            }).to.deep.equal({
+              err: null,
+              statusCode: 302,
+              location: redirectLocation,
+              body: '',
+              logs: {
+                stderr: '',
+                stdout: 'GET /login?cont=/echo\nPOST /login?cont=/echo\n',
+              },
+            }),
+          done,
+          () => {
+            request(
+              redirectLocation,
+              {
+                headers: {
+                  'Cookie': `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
+                },
+              },
+              // eslint-disable-next-line no-use-before-define
+              onFinalRedirect);
+          });
+      }
+
+      function onFinalRedirect(err, response, body) {
+        expects(
+          () => {
+            expect({
+              err,
+              statusCode: response && response.statusCode,
+              body,
+              logs: logs(),
+            }).to.deep.equal({
+              err: null,
+              statusCode: 200,
+              body: '<!DOCTYPE html><html><head>\
+<title>Database Echo</title>\
+<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3" src="/common.js"></script>\
+<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3">\
+</head><body>\
+<div class="userfloat">\
+<span class="user name">Anonymous</span>\
+<a class="logoutlink" href="/logout">logout</a>\
+</div>\
+<h1>Echo</h1>\
+<table class="echo"><tr><th>Hello</th></tr><tr><td>World</td></tr></table>\
+</body></html>',
+              logs: {
+                stderr: '',
+                stdout: `GET /login?cont=/echo
+POST /login?cont=/echo
+GET /echo
+echo sending SELECT 'World' AS "Hello"
+`,
+              },
+            });
+          },
+          done);
+      }
     });
   });
 };

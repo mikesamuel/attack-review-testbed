@@ -4,9 +4,12 @@ body:after { font-size: 25%; content: "Terms of Service: Don't!" }
 
 h1 {
     font-size: 125%;
-    color: #07889b;
     border-left: .25em solid #66b9bf;
     padding-left: .25em;
+}
+
+h1, label, table.echo > tbody > tr > th {
+    color: #07889b;
 }
 
 ol.posts {
@@ -37,7 +40,6 @@ table.echo {
     border-collapse: collapse;
 }
 table.echo > tbody > tr > th {
-    color: #07889b;
     border: 2px solid #66b9bf;
     border: 2px solid #66b9bf;
     border: 2px solid #66b9bf;
@@ -53,3 +55,25 @@ table.echo > tbody > tr > td {
     border-right: 2px solid #bbb;
     border-bottom: 2px solid #bbb;
 }
+
+.userfloat {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 10em;
+    font-size: 50%;
+    text-align: right;
+}
+
+.error {
+    color: #800;
+    font-style: italic;
+}
+
+label {
+    font-weight: bold;
+    padding-right: 1em;
+    padding-left: 1em;
+}
+
+.userfloat > .user.name:after { content: ' : ' }

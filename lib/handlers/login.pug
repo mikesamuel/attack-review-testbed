@@ -1,0 +1,23 @@
+mixin title()
+  | Login
+
+mixin body()
+  h1
+    | Login
+  if typeof email === 'string' && !/\S/.test(email)
+    .error
+      | Email is a required field.
+
+  form(method="POST" action=reqUrl.pathname)
+    label(for="email") Email
+    input(name="email" value=email)
+    br
+    | There is no password input since testing a credential store
+    | is out of scope for this attack review, and requiring
+    | credentials or using a federated service like oauth would
+    | complicate running locally and testing as different users.
+    br
+    button(type=submit) Login
+    button(type=submit formaction="/" formmethod="GET" formnovalidate=true) Cancel
+
+include includes/envelope.pug
