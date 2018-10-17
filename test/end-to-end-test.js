@@ -17,7 +17,7 @@
 
 'use strict';
 
-/* eslint id-blacklist: 0, no-multi-str: 0, no-magic-numbers: 0 */
+/* eslint id-blacklist: 0, no-multi-str: 0, no-magic-numbers: 0, array-element-newline: 0 */
 
 const { expect } = require('chai');
 const { describe, it } = require('mocha');
@@ -169,6 +169,10 @@ module.exports = (makePool) => {
     });
   }
 
+  function normHtml(html) {
+    return html.replace(/></g, '>\n<').split(/\n/g);
+  }
+
   describe('end-to-end', () => {
     serverTest('GET / OK', (baseUrl, done, logs) => {
       const homePageUrl = `/?now=${ Number(new Date('2018-10-12 12:00:00')) }`;
@@ -179,47 +183,63 @@ module.exports = (makePool) => {
             expect({
               err,
               statusCode: response && response.statusCode,
-              body: body.replace(/<li\b/g, '\n<li').split(/\n/g),
+              body: normHtml(body),
               logs: logs(),
             }).to.deep.equal({
               err: null,
               body: [
-                '<!DOCTYPE html><html><head><title>Attack Review Testbed</title>\
-<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
-<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
-</head><body>\
-<div class="userfloat"><a class="loginlink" href="/login">login</a></div>\
-<div class="banner view-as-public"></div>\
-<h1>Recent Posts</h1>\
-<ol class="posts">',
-                '<li>\
-<span class="author name">Ada</span>\
-<span class="created">a week ago</span>\
-<div class="body">Hi!  My name is <b>Ada</b>.  Nice to meet you!</div>\
-</li>',
-                '<li>\
-<a class="author name" href="about:invalid#TrustedURL">Bob</a>\
-<span class="created">6 days ago</span>\
-<div class="body">Ada, !</div>\
-</li>',
-                '<li>\
-<a class="author name" href="https://deb.example.com/"><b>D</b>eb</a>\
-<span class="created">5 days ago</span>\
-<div class="body"><b>¡Hi, all!</b></div>\
-</li>',
-                '<li>\
-<a class="author name" href="mailto:fae@fae.fae"><font color="green">Fae</font></a>\
-<span class="created">3 days ago</span>\
-<div class="body">Sigh!  Yet another <a href="//Facebook.com">Facebook.com</a> knockoff without any users.</div>\
-</li>',
-                '<li>\
-<a class="author name" href="mailto:fae@fae.fae"><font color="green">Fae</font></a>\
-<span class="created">2 days ago</span>\
-<div class="body">(It is probably insecure)</div>\
-</li>\
-\
-</ol>\
-</body></html>',
+                '<!DOCTYPE html>',
+                '<html>',
+                '<head>',
+                '<title>Attack Review Testbed</title>',
+                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js">',
+                '</script>',
+                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">',
+                '</head>',
+                '<body>',
+                '<div class="userfloat">',
+                '<a class="loginlink" href="/login">login</a>',
+                '</div>',
+                '<div class="banner view-as-public">',
+                '</div>',
+                '<h1>Recent Posts</h1>',
+                '<ol class="posts">',
+                '<li>',
+                '<span class="author name">Ada</span>',
+                '<span class="created">a week ago</span>',
+                '<div class="body">Hi!  My name is <b>Ada</b>.  Nice to meet you!</div>',
+                '</li>',
+                '<li>',
+                '<a class="author name" href="about:invalid#TrustedURL">Bob</a>',
+                '<span class="created">6 days ago</span>',
+                '<div class="body">Ada, !</div>',
+                '</li>',
+                '<li>',
+                '<a class="author name" href="https://deb.example.com/">',
+                '<b>D</b>eb</a>',
+                '<span class="created">5 days ago</span>',
+                '<div class="body">',
+                '<b>¡Hi, all!</b>',
+                '</div>',
+                '</li>',
+                '<li>',
+                '<a class="author name" href="mailto:fae@fae.fae">',
+                '<font color="green">Fae</font>',
+                '</a>',
+                '<span class="created">3 days ago</span>',
+                '<div class="body">Sigh!  Yet another <a href="//Facebook.com">Facebook.com</a>' +
+                ' knockoff without any users.</div>',
+                '</li>',
+                '<li>',
+                '<a class="author name" href="mailto:fae@fae.fae">',
+                '<font color="green">Fae</font>',
+                '</a>',
+                '<span class="created">2 days ago</span>',
+                '<div class="body">(It is probably insecure)</div>',
+                '</li>',
+                '</ol>',
+                '</body>',
+                '</html>',
               ],
               logs: {
                 stderr: '',
@@ -241,12 +261,16 @@ module.exports = (makePool) => {
             expect({
               err,
               statusCode: response && response.statusCode,
-              body,
+              body: normHtml(body),
               logs: logs(),
             }).to.deep.equal({
               err: null,
               statusCode: 200,
-              body: '<!doctype html>\nHello, World!\n',
+              body: [
+                '<!doctype html>',
+                'Hello, World!',
+                '',
+              ],
               logs: {
                 stderr: '',
                 stdout: '',
@@ -268,20 +292,31 @@ module.exports = (makePool) => {
             expect({
               err,
               statusCode: response && response.statusCode,
-              body,
+              body: normHtml(body),
               logs: logs(),
             }).to.deep.equal({
               err: null,
               statusCode: 404,
-              body: `<!DOCTYPE html><html><head><title>File Not Found:
-/no-such-file</title>\
-<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
-<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
-</head><body>\
-<div class="userfloat"><a class="loginlink" href="/login">login</a></div>\
-<h1>404</h1>\
-<p>Oops!  Nothing at
-${ target }</p></body></html>`,
+              body: [
+                '<!DOCTYPE html>',
+                '<html>',
+                '<head>',
+                '<title>File Not Found:',
+                '/no-such-file</title>',
+                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js">',
+                '</script>',
+                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">',
+                '</head>',
+                '<body>',
+                '<div class="userfloat">',
+                '<a class="loginlink" href="/login">login</a>',
+                '</div>',
+                '<h1>404</h1>',
+                '<p>Oops!  Nothing at',
+                `${ target }</p>`,
+                '</body>',
+                '</html>',
+              ],
               logs: {
                 stderr: '',
                 stdout: 'GET /no-such-file\n',
@@ -299,22 +334,42 @@ ${ target }</p></body></html>`,
             expect({
               err,
               statusCode: response && response.statusCode,
-              body,
+              body: normHtml(body),
               logs: logs(),
             }).to.deep.equal({
               err: null,
               statusCode: 200,
               // eslint-disable-next-line quotes
-              body: `<!DOCTYPE html><html><head><title>Database Echo</title>\
-<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
-<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
-</head><body>\
-<div class="userfloat"><a class="loginlink" href="/login">login</a></div>\
-<h1>Echo</h1>\
-<table class="echo">\
-<tr><th>a&#34;</th><th>foo</th><th>baz</th></tr>\
-<tr><td>b&#39;</td><td>bar</td><td></td></tr>\
-</table></body></html>`,
+              body: [
+                '<!DOCTYPE html>',
+                '<html>',
+                '<head>',
+                '<title>Database Echo</title>',
+                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js">',
+                '</script>',
+                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">',
+                '</head>',
+                '<body>',
+                '<div class="userfloat">',
+                '<a class="loginlink" href="/login">login</a>',
+                '</div>',
+                '<h1>Echo</h1>',
+                '<table class="echo">',
+                '<tr>',
+                '<th>a&#34;</th>',
+                '<th>foo</th>',
+                '<th>baz</th>',
+                '</tr>',
+                '<tr>',
+                '<td>b&#39;</td>',
+                '<td>bar</td>',
+                '<td>',
+                '</td>',
+                '</tr>',
+                '</table>',
+                '</body>',
+                '</html>',
+              ],
               logs: {
                 stderr: '',
                 stdout: (
@@ -331,10 +386,11 @@ ${ target }</p></body></html>`,
       // 2. Submit the form with an email.
       // 3. Redirect to a page and notice that the login link now has a username.
 
-      const loginUrl = new URL('/login?cont=/echo', baseUrl).href;
+      const loginUrl = new URL('/login', baseUrl).href;
+      const loginUrlWithCont = new URL('?cont=/echo', loginUrl).href;
       const redirectLocation = new URL('/echo', baseUrl).href;
       request(
-        loginUrl,
+        loginUrlWithCont,
         // eslint-disable-next-line no-use-before-define
         onInitialGet);
 
@@ -344,29 +400,39 @@ ${ target }</p></body></html>`,
             expect({
               err,
               statusCode: response && response.statusCode,
-              body,
+              body: normHtml(body),
               logs: logs(),
             }).to.deep.equal({
               err: null,
               statusCode: 200,
               // eslint-disable-next-line quotes
-              body: `<!DOCTYPE html><html><head>\
-<title>Login</title>\
-<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js"></script>\
-<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">\
-</head><body>\
-<h1>Login</h1>\
-<form method="POST" action="/login">\
-<label for="email">Email</label><input name="email"/>\
-<br/>\
-There is no password input since testing a credential store
-is out of scope for this attack review, and requiring
-credentials or using a federated service like oauth would
-complicate running locally and testing as different users.\
-<br/>\
-<button>Login</button>\
-<button formaction="/" formmethod="GET" formnovalidate="formnovalidate">Cancel</button>\
-</form></body></html>`,
+              body: [
+                '<!DOCTYPE html>',
+                '<html>',
+                '<head>',
+                '<title>Login</title>',
+                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js">',
+                '</script>',
+                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">',
+                '</head>',
+                '<body>',
+                '<h1>Login</h1>',
+                '<form method="POST" action="/login" id="login">',
+                '<label for="email">Email</label>',
+                '<input name="email"/>',
+                `<input name="cont" type="hidden" value="${ baseUrl.origin }/echo"/>`,
+                '<br/>There is no password input since testing a credential store',
+                'is out of scope for this attack review, and requiring',
+                'credentials or using a federated service like oauth would',
+                'complicate running locally and testing as different users.</form>',
+                '<br/>',
+                '<button type="submit" form="login">Login</button>',
+                `<a href="${ baseUrl.origin }/echo">`,
+                '<button type="button">Cancel</button>',
+                '</a>',
+                '</body>',
+                '</html>',
+              ],
               logs: {
                 stderr: '',
                 stdout: 'GET /login?cont=/echo\n',
@@ -380,6 +446,7 @@ complicate running locally and testing as different users.\
               {
                 form: {
                   email: 'foo@bar.com',
+                  cont: `${ baseUrl.origin }/echo`,
                 },
                 headers: {
                   'Cookie': `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
@@ -398,16 +465,16 @@ complicate running locally and testing as different users.\
               err,
               statusCode: response && response.statusCode,
               location: response && response.headers.location,
-              body,
+              body: normHtml(body),
               logs: logs(),
             }).to.deep.equal({
               err: null,
               statusCode: 302,
               location: redirectLocation,
-              body: '',
+              body: [ '' ],
               logs: {
                 stderr: '',
-                stdout: 'GET /login?cont=/echo\nPOST /login?cont=/echo\n',
+                stdout: 'GET /login?cont=/echo\nPOST /login\n',
               },
             }),
           done,
@@ -430,27 +497,43 @@ complicate running locally and testing as different users.\
             expect({
               err,
               statusCode: response && response.statusCode,
-              body,
+              body: normHtml(body),
               logs: logs(),
             }).to.deep.equal({
               err: null,
               statusCode: 200,
-              body: '<!DOCTYPE html><html><head>\
-<title>Database Echo</title>\
-<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3" src="/common.js"></script>\
-<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3">\
-</head><body>\
-<div class="userfloat">\
-<span class="user name">Anonymous</span>\
-<a class="logoutlink" href="/logout">logout</a>\
-</div>\
-<h1>Echo</h1>\
-<table class="echo"><tr><th>Hello</th></tr><tr><td>World</td></tr></table>\
-</body></html>',
+              body: [
+                '<!DOCTYPE html>',
+                '<html>',
+                '<head>',
+                '<title>Database Echo</title>',
+                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3" src="/common.js">',
+                '</script>',
+                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3">',
+                '</head>',
+                '<body>',
+                '<div class="userfloat">',
+                '<span class="user name">Anonymous</span>',
+                '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST">',
+                '<button class="logoutlink" type="submit">logout</button>',
+                '</form>',
+                '</div>',
+                '<h1>Echo</h1>',
+                '<table class="echo">',
+                '<tr>',
+                '<th>Hello</th>',
+                '</tr>',
+                '<tr>',
+                '<td>World</td>',
+                '</tr>',
+                '</table>',
+                '</body>',
+                '</html>',
+              ],
               logs: {
                 stderr: '',
                 stdout: `GET /login?cont=/echo
-POST /login?cont=/echo
+POST /login
 GET /echo
 echo sending SELECT 'World' AS "Hello"
 `,

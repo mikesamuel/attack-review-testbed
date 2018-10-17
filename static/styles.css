@@ -77,3 +77,17 @@ label {
 }
 
 .userfloat > .user.name:after { content: ' : ' }
+
+form.lightweight {
+  display: inline
+}
+
+button.logoutlink {
+    font: inherit;
+    color: inherit;
+    border: none;
+    background: none !important;
+    padding: 0 !important;
+    border-bottom:1px solid #444;
+    cursor: pointer;
+}

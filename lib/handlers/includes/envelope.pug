@@ -11,7 +11,9 @@ html
         if currentAccount
           span.user.name
             = currentAccount.displayName
-          a.logoutlink(href="/logout") logout
+          form.lightweight(
+              action=`/logout?cont=${encodeURIComponent(reqUrl.pathname + reqUrl.search)}` method="POST")
+            button.logoutlink(type="submit") logout
         else
           a.loginlink(href="/login") login
     +body()

@@ -8,16 +8,20 @@ mixin body()
     .error
       | Email is a required field.
 
-  form(method="POST" action=reqUrl.pathname)
+  form(method="POST" action=reqUrl.pathname id="login")
     label(for="email") Email
     input(name="email" value=email)
+    input(name="cont" type="hidden" value=cont)
     br
     | There is no password input since testing a credential store
     | is out of scope for this attack review, and requiring
     | credentials or using a federated service like oauth would
     | complicate running locally and testing as different users.
-    br
-    button(type=submit) Login
-    button(type=submit formaction="/" formmethod="GET" formnovalidate=true) Cancel
+  br
+  button(type="submit" form="login") Login
+  |
+  |
+  a(href=cont)
+    button(type="button") Cancel
 
 include includes/envelope.pug
