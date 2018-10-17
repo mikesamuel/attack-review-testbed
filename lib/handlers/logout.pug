@@ -1,0 +1,17 @@
+mixin title()
+  | Logout
+
+mixin body()
+  h1
+    | Logout
+
+  center
+    form(method="POST" action="/logout" id="logout")
+      input(type="hidden" name="cont" value=cont)
+    button(type="submit" form="logout") Logout
+    |
+    |
+    a(href=(reqUrl.searchParams.get('cont') || '/'))
+      button(type="button") Cancel
+
+include includes/envelope.pug

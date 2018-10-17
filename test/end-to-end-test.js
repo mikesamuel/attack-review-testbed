@@ -129,7 +129,13 @@ module.exports = (makePool) => {
                   stopTrapLog(process.stdout);
                 }
               },
-              () => ({ stderr, stdout }));
+              () => {
+                const errText = stderr;
+                const outText = stdout;
+                stderr = '';
+                stdout = '';
+                return { stderr: errText, stdout: outText };
+              });
           },
           notReallyUnguessable);
       },
@@ -449,7 +455,7 @@ module.exports = (makePool) => {
                   cont: `${ baseUrl.origin }/echo`,
                 },
                 headers: {
-                  'Cookie': `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
+                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
                 },
                 simple: false,
               },
@@ -474,7 +480,7 @@ module.exports = (makePool) => {
               body: [ '' ],
               logs: {
                 stderr: '',
-                stdout: 'GET /login?cont=/echo\nPOST /login\n',
+                stdout: 'POST /login\n',
               },
             }),
           done,
@@ -483,7 +489,7 @@ module.exports = (makePool) => {
               redirectLocation,
               {
                 headers: {
-                  'Cookie': `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
+                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
                 },
               },
               // eslint-disable-next-line no-use-before-define
@@ -532,16 +538,211 @@ module.exports = (makePool) => {
               ],
               logs: {
                 stderr: '',
-                stdout: `GET /login?cont=/echo
-POST /login
-GET /echo
-echo sending SELECT 'World' AS "Hello"
-`,
+                stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
               },
             });
           },
           done);
       }
+    });
+    serverTest('POST /login, GET /echo, POST /logout, GET /echo OK', (baseUrl, done, logs) => {
+      function gotEchoLoggedOut(err, response, body) {
+        expects(
+          () => {
+            expect({
+              err,
+              statusCode: response && response.statusCode,
+              body: normHtml(body),
+              location: response && response.headers.location,
+              logs: logs(),
+            }).to.deep.equal({
+              body: [
+                '<!DOCTYPE html>',
+                '<html>',
+                '<head>',
+                '<title>Database Echo</title>',
+                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4" src="/common.js">',
+                '</script>',
+                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
+                '</head>',
+                '<body>',
+                '<div class="userfloat">',
+                // No user name.
+                '<a class="loginlink" href="/login">login</a>',
+                '</div>',
+                '<h1>Echo</h1>',
+                '<table class="echo">',
+                '<tr>',
+                '<th>Hello</th>',
+                '</tr>',
+                '<tr>',
+                '<td>World</td>',
+                '</tr>',
+                '</table>',
+                '</body>',
+                '</html>',
+              ],
+              err: null,
+              location: void 0,
+              logs: {
+                stderr: '',
+                stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
+              },
+              statusCode: 200,
+            });
+          },
+          done);
+      }
+
+      function afterPostLogout(err, response, body) {
+        expects(
+          () => {
+            expect({
+              err,
+              statusCode: response && response.statusCode,
+              body: normHtml(body),
+              location: response && response.headers.location,
+              logs: logs(),
+            }).to.deep.equal({
+              body: [ '' ],
+              err: null,
+              location: `${ baseUrl.origin }/echo`,
+              logs: {
+                stderr: '',
+                stdout: 'POST /logout\n',
+              },
+              statusCode: 302,
+            });
+          },
+          done,
+          () => {
+            const dest = new URL('/echo', baseUrl);
+            request.get(
+              dest,
+              {
+                headers: {
+                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
+                },
+                simple: false,
+              },
+              // eslint-disable-next-line no-use-before-define
+              gotEchoLoggedOut);
+          });
+      }
+
+      function gotEchoLoggedIn(err, response, body) {
+        expects(
+          () => {
+            expect({
+              err,
+              statusCode: response && response.statusCode,
+              body: normHtml(body),
+              location: response && response.headers.location,
+              logs: logs(),
+            }).to.deep.equal({
+              body: [
+                '<!DOCTYPE html>',
+                '<html>',
+                '<head>',
+                '<title>Database Echo</title>',
+                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2" src="/common.js">',
+                '</script>',
+                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2">',
+                '</head>',
+                '<body>',
+                '<div class="userfloat">',
+                // Got user name.  See db-tables.js
+                '<span class="user name">Ada</span>',
+                '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST">',
+                '<button class="logoutlink" type="submit">logout</button>',
+                '</form>',
+                '</div>',
+                '<h1>Echo</h1>',
+                '<table class="echo">',
+                '<tr>',
+                '<th>Hello</th>',
+                '</tr>',
+                '<tr>',
+                '<td>World</td>',
+                '</tr>',
+                '</table>',
+                '</body>',
+                '</html>',
+              ],
+              err: null,
+              location: void 0,
+              logs: {
+                stderr: '',
+                stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
+              },
+              statusCode: 200,
+            });
+          },
+          done,
+          () => {
+            const dest = new URL('/logout', baseUrl);
+            request.post(
+              dest,
+              {
+                headers: {
+                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
+                  Referer: `${ baseUrl.origin }/echo`,
+                },
+                simple: false,
+              },
+              // eslint-disable-next-line no-use-before-define
+              afterPostLogout);
+          });
+      }
+
+      function afterPostLogin(err, response, body) {
+        expects(
+          () => {
+            expect({
+              err,
+              statusCode: response && response.statusCode,
+              body: normHtml(body),
+              location: response && response.headers.location,
+              logs: logs(),
+            }).to.deep.equal({
+              body: [ '' ],
+              err: null,
+              location: `${ baseUrl.origin }/echo`,
+              logs: {
+                stderr: '',
+                stdout: 'POST /login\n',
+              },
+              statusCode: 302,
+            });
+          },
+          done,
+          () => {
+            const dest = new URL('/echo', baseUrl);
+            request.get(
+              dest,
+              {
+                headers: {
+                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
+                },
+                simple: false,
+              },
+              // eslint-disable-next-line no-use-before-define
+              gotEchoLoggedIn);
+          });
+      }
+
+      const dest = new URL('/login', baseUrl);
+      request.post(
+        dest,
+        {
+          simple: false,
+          form: {
+            email: 'ada@example.com',
+            cont: `${ baseUrl.origin }/echo`,
+          },
+        },
+        // eslint-disable-next-line no-use-before-define
+        afterPostLogin);
     });
   });
 };
