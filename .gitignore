@@ -7,6 +7,8 @@
 # Directory owned by locally running postgres instances.
 # See script/run-locally.js
 /pg
+# Stores uploaded files
+/static/user-uploads
 
 # Emacs droppings
 *~

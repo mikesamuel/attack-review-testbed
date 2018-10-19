@@ -1,11 +1,11 @@
 mixin post(post)
   if post.authorName
-    if post.authorUrl
-      a.author.name(href=post.authorUrl)
+    span.author.name
+      if post.authorUrl
+        a(href=post.authorUrl)
+          = post.authorName
+      else
         = post.authorName
-    else
-     span.author.name
-       = post.authorName
   if post.created
     span.created
       = fmtDate(post.created)
@@ -13,16 +13,33 @@ mixin post(post)
   if post.images && post.images.length
     div.images
       each image in post.images
-        img(src=image)
+        a.usercontent(href=image)
+          img(src=image)
 
 mixin post_form(preview)
-  form(id="post-form" action="/upload" enctype="multipart/form-data" method="POST")
-    textarea(name="body" value=(preview ? preview.body : ''))
-    each image in preview.images
-      div.imagepreview
-        input(type="checkbox" checked=!(preview.deletes && preview.deletes[image]) name="imagepath" value=image)
-    input(type="file" name="upload" multiple="multiple")
+  each error in (userErrors || [])
+    p.error
+      =error
+  form(id="post-form" action="/post" enctype="multipart/form-data" method="POST")
+    textarea(name="body" cols="40" rows="5")= ((preview && preview.body) || '')
+    div
+      label(for="public") Public
+      input(type="checkbox" id="public" name="public" checked=preview.isPublic value="1")
+    div
+      each image, index in preview.images
+        .imagepreview
+          input(id=`image-${ index }` type="checkbox" checked name="imagepath" value=image)
+          label(for=`image-${ index }`)
+            img.usercontent(src=image)
     br
-    button(type="submit" name="preview" value=true form="post-form") Preview
-    = '|'
+    input(type="file" name="upload" multiple="multiple")
+    hr
+  button(type="submit" name="preview" value="1" form="post-form") Preview
+  |
+  |
+  if preview
     button(type="submit" form="post-form") Post
+    |
+    |
+  a(href='/')
+    button(type="button") Cancel

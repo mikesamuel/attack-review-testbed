@@ -1,0 +1,19 @@
+include includes/post-common.pug
+
+mixin title()
+  | Attack Review Testbed
+
+mixin body()
+  if preview
+    h1
+      | Preview
+    ol.posts.preview
+      li
+        +post(preview)
+  else
+    h1
+      | Post
+  +post_form(preview)
+  br
+
+include includes/envelope.pug

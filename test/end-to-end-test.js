@@ -145,7 +145,8 @@ module.exports = (makePool) => {
   }
 
   function serverTest(testName, testFun, options = {}) {
-    it(testName, (done) => {
+    it(testName, function test(done) {
+      this.slow(250); // eslint-disable-line no-invalid-this
       withServer(
         (startErr, url, stop, logs) => {
           let closed = false;
@@ -214,32 +215,45 @@ module.exports = (makePool) => {
                 '<span class="author name">Ada</span>',
                 '<span class="created">a week ago</span>',
                 '<div class="body">Hi!  My name is <b>Ada</b>.  Nice to meet you!</div>',
+                '<div class="images">',
+                '<a class="usercontent" href="smiley.png">',
+                '<img src="smiley.png"/>',
+                '</a>',
+                '</div>',
                 '</li>',
                 '<li>',
-                '<a class="author name" href="about:invalid#TrustedURL">Bob</a>',
+                '<span class="author name">',
+                '<a href="about:invalid#TrustedURL">Bob</a>',
+                '</span>',
                 '<span class="created">6 days ago</span>',
                 '<div class="body">Ada, !</div>',
                 '</li>',
                 '<li>',
-                '<a class="author name" href="https://deb.example.com/">',
+                '<span class="author name">',
+                '<a href="https://deb.example.com/">',
                 '<b>D</b>eb</a>',
+                '</span>',
                 '<span class="created">5 days ago</span>',
                 '<div class="body">',
                 '<b>¡Hi, all!</b>',
                 '</div>',
                 '</li>',
                 '<li>',
-                '<a class="author name" href="mailto:fae@fae.fae">',
+                '<span class="author name">',
+                '<a href="mailto:fae@fae.fae">',
                 '<font color="green">Fae</font>',
                 '</a>',
+                '</span>',
                 '<span class="created">3 days ago</span>',
                 '<div class="body">Sigh!  Yet another <a href="//Facebook.com">Facebook.com</a>' +
                 ' knockoff without any users.</div>',
                 '</li>',
                 '<li>',
-                '<a class="author name" href="mailto:fae@fae.fae">',
+                '<span class="author name">',
+                '<a href="mailto:fae@fae.fae">',
                 '<font color="green">Fae</font>',
                 '</a>',
+                '</span>',
                 '<span class="created">2 days ago</span>',
                 '<div class="body">(It is probably insecure)</div>',
                 '</li>',

@@ -104,7 +104,13 @@ function makePoolPromise() {
         if (dbConfigErr) {
           reject(dbConfigErr);
         } else {
-          resolve(new Pool(dbConfig));
+          const pool = new Pool(dbConfig);
+          /*
+          pool.on('error', (err, client) => {
+            console.error(`Unexpected error on idle client ${ client.creator }`, err);
+          });
+          */
+          resolve(pool);
         }
       });
   });
@@ -112,8 +118,7 @@ function makePoolPromise() {
 
 for (let i = 0, { length } = testsThatRequireDb; i < length; ++i) {
   const test = testsThatRequireDb[i];
-  test(
-    makePoolPromise);
+  test(makePoolPromise);
 }
 
 before(() => withDbConfig(noop));
