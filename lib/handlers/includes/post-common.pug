@@ -21,7 +21,7 @@ mixin post_form(preview)
     p.error
       =error
   form(id="post-form" action="/post" enctype="multipart/form-data" method="POST")
-    textarea(name="body" cols="40" rows="5")= ((preview && preview.body) || '')
+    textarea(name="body" cols="40" rows="5")= ((preview && (preview.unsanitizedBody || preview.body)) || '')
     div
       label(for="public") Public
       input(type="checkbox" id="public" name="public" checked=preview.isPublic value="1")

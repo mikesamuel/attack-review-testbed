@@ -25,12 +25,16 @@
   "homepage": "https://github.com/mikesamuel/attack-review-testbed#readme",
   "mintable": {
     "grants": {
+      "ShFragment": [
+        "sh-template-tag"
+      ],
       "web-contract-types/TrustedHTML": [
         "pug-runtime-trusted-types",
         "./lib/handlers/echo.pug",
         "./lib/handlers/error.pug",
         "./lib/handlers/index.pug",
         "./lib/handlers/four-oh-four.pug",
+        "./lib/handlers/post.pug",
         "./lib/safe/html.js"
       ]
     },
@@ -42,13 +46,15 @@
   "sensitiveModules": {
     "child_process": {
       "advice": "Use safe/child_process.js instead.",
-      "ids": []
+      "ids": [
+        "lib/safe/child_process.js"
+      ]
     },
     "http": [
       "lib/server.js"
     ],
     "process": {
-      "advice": "Process is easy to misuse.  If you need access to process metadata, thread it through from main.js.  Changes the process's environment should go through the docker wrapper.  Contact security-oncall@ if these options don't work for you.",
+      "advice": "Process is easy to misuse.  If you need access to process metadata, thread it through from main.js.  Changes to the process's environment should go through the docker wrapper, and checks should go through its maintainers.  Contact security-oncall@ if these options don't work for you.",
       "mode": "enforce",
       "ids": [
         "main.js",
@@ -62,6 +68,8 @@
         "debug/src/node.js",
         "depd",
         "iconv-lite/lib/index.js",
+        "body-parser/node_modules/iconv-lite/lib/index.js",
+        "raw-body/node_modules/iconv-lite/lib/index.js",
         "jsdom/lib/jsdom/browser/Window.js",
         "mime/mime.js",
         "pg/lib/client.js",

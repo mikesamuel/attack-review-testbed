@@ -163,8 +163,26 @@ module.exports = (makePool) => {
     });
   }
 
-  function normHtml(html) {
-    return html.replace(/></g, '>\n<').split(/\n/g);
+  function postProcessHtml(html) {
+    const uploads = new Map();
+    html = html.replace(
+      /[/]user-uploads[/]([^/."'?# \n]+)[.](\w+)/g,
+      (match, basename, ext) => {
+        let replacement = uploads.get(match);
+        if (!replacement) {
+          const serial = String(uploads.size);
+          const padding = '0'.repeat(basename.length - serial.length);
+          replacement = `/user-uploads/${ padding }${ serial }.${ ext }`;
+          uploads.set(match, replacement);
+        }
+        return replacement;
+      });
+    return {
+      lines: html.replace(/></g, '>\n<').split(/\n/g),
+      derived: {
+        uploads,
+      },
+    };
   }
 
   describe('end-to-end', () => {
@@ -178,7 +196,7 @@ module.exports = (makePool) => {
           let promise = Promise.resolve(null);
           let lastResponse = null;
           for (const {
-            req, res: { body, statusCode = 200, logs: { stderr, stdout }, headers = {} },
+            req, res: { body = [], statusCode = 200, logs: { stderr = '', stdout = '' }, headers = {}, after },
           } of requests(baseUrl)) {
             promise = new Promise((resolve, reject) => { // eslint-disable-line no-loop-func
               promise.then(
@@ -202,10 +220,11 @@ module.exports = (makePool) => {
                     for (const headerName of Object.getOwnPropertyNames(headers)) {
                       actualHeaders[headerName] = response.headers[headerName];
                     }
+                    const { lines: bodyLines, derived } = postProcessHtml(actualBody);
                     try {
                       expect({
                         exc: exc || null,
-                        body: normHtml(actualBody),
+                        body: bodyLines,
                         headers: actualHeaders,
                         logs: logs(),
                         statusCode: response && response.statusCode,
@@ -214,11 +233,15 @@ module.exports = (makePool) => {
                         body,
                         headers,
                         logs: {
-                          stderr: stderr || '',
+                          stderr,
                           stdout,
                         },
                         statusCode,
                       });
+
+                      if (after) {
+                        after(response, bodyLines, derived);
+                      }
                     } catch (testFailure) {
                       reject(testFailure);
                       return;
