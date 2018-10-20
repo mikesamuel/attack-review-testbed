@@ -26,6 +26,8 @@ const { describe, it } = require('mocha');
 // some of our protective mechanisms
 require('./main-test.js');
 
+// eslint-disable-next-line id-length
+const fs = require('fs');
 const path = require('path');
 const process = require('process');
 const request = require('request');
@@ -53,21 +55,6 @@ function sessionCookieForResponse({ headers }) {
     }
   }
   return void 0;
-}
-
-function expects(assertions, reject, next) {
-  try {
-    assertions();
-  } catch (exc) {
-    reject(exc);
-    return;
-  }
-  if (next) {
-    // eslint-disable-next-line callback-return
-    next();
-  } else {
-    reject();
-  }
 }
 
 module.exports = (makePool) => {
@@ -181,582 +168,70 @@ module.exports = (makePool) => {
   }
 
   describe('end-to-end', () => {
-    serverTest('GET / OK', (baseUrl, done, logs) => {
-      const homePageUrl = `/?now=${ Number(new Date('2018-10-12 12:00:00')) }`;
-      request(
-        new URL(homePageUrl, baseUrl).href,
-        (err, response, body) => expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              logs: logs(),
-            }).to.deep.equal({
-              err: null,
-              body: [
-                '<!DOCTYPE html>',
-                '<html>',
-                '<head>',
-                '<title>Attack Review Testbed</title>',
-                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js">',
-                '</script>',
-                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">',
-                '</head>',
-                '<body>',
-                '<div class="userfloat">',
-                '<a class="loginlink" href="/login">login</a>',
-                '</div>',
-                '<div class="banner view-as-public">',
-                '</div>',
-                '<h1>Recent Posts</h1>',
-                '<ol class="posts">',
-                '<li>',
-                '<span class="author name">Ada</span>',
-                '<span class="created">a week ago</span>',
-                '<div class="body">Hi!  My name is <b>Ada</b>.  Nice to meet you!</div>',
-                '<div class="images">',
-                '<a class="usercontent" href="smiley.png">',
-                '<img src="smiley.png"/>',
-                '</a>',
-                '</div>',
-                '</li>',
-                '<li>',
-                '<span class="author name">',
-                '<a href="about:invalid#TrustedURL">Bob</a>',
-                '</span>',
-                '<span class="created">6 days ago</span>',
-                '<div class="body">Ada, !</div>',
-                '</li>',
-                '<li>',
-                '<span class="author name">',
-                '<a href="https://deb.example.com/">',
-                '<b>D</b>eb</a>',
-                '</span>',
-                '<span class="created">5 days ago</span>',
-                '<div class="body">',
-                '<b>¡Hi, all!</b>',
-                '</div>',
-                '</li>',
-                '<li>',
-                '<span class="author name">',
-                '<a href="mailto:fae@fae.fae">',
-                '<font color="green">Fae</font>',
-                '</a>',
-                '</span>',
-                '<span class="created">3 days ago</span>',
-                '<div class="body">Sigh!  Yet another <a href="//Facebook.com">Facebook.com</a>' +
-                ' knockoff without any users.</div>',
-                '</li>',
-                '<li>',
-                '<span class="author name">',
-                '<a href="mailto:fae@fae.fae">',
-                '<font color="green">Fae</font>',
-                '</a>',
-                '</span>',
-                '<span class="created">2 days ago</span>',
-                '<div class="body">(It is probably insecure)</div>',
-                '</li>',
-                '</ol>',
-                '</body>',
-                '</html>',
-              ],
-              logs: {
-                stderr: '',
-                stdout: `GET ${ homePageUrl }\n`,
-              },
-              statusCode: 200,
-            });
-            expect(sessionCookieForResponse(response)).to.not.equal(void 0);
-          }, done),
-        { cannedData: true });
-    });
+    const casesDir = path.join(__dirname, 'cases', 'end-to-end');
+    // eslint-disable-next-line no-sync
+    for (const file of fs.readdirSync(casesDir)) {
+      if (/-case\.js$/.test(file)) {
+        // eslint-disable-next-line global-require
+        const { name, requests } = require(path.resolve(path.join(casesDir, file)));
+        serverTest(name, (baseUrl, done, logs) => {
+          let promise = Promise.resolve(null);
+          let lastResponse = null;
+          for (const {
+            req, res: { body, statusCode = 200, logs: { stderr, stdout }, headers = {} },
+          } of requests(baseUrl)) {
+            promise = new Promise((resolve, reject) => { // eslint-disable-line no-loop-func
+              promise.then(
+                () => {
+                  const augmentedRequest = Object.assign({}, req);
+                  augmentedRequest.headers = Object.assign({}, augmentedRequest.headers || {});
+                  if (lastResponse) {
+                    augmentedRequest.headers.Cookie =
+                      `session=${ encodeURIComponent(sessionCookieForResponse(lastResponse)) }`;
+                  }
+                  // Prevents request from complaining that the status is not 200.
+                  augmentedRequest.simple = false;
 
-    // A static HTML file under ../static
-    serverTest('GET /hello-world.html OK', (baseUrl, done, logs) => {
-      request(
-        new URL('/hello-world.html', baseUrl).href,
-        (err, response, body) => expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              logs: logs(),
-            }).to.deep.equal({
-              err: null,
-              statusCode: 200,
-              body: [
-                '<!doctype html>',
-                'Hello, World!',
-                '',
-              ],
-              logs: {
-                stderr: '',
-                stdout: '',
-              },
-            });
-          }, done));
-    });
-
-    serverTest('GET /no-such-file 404', (baseUrl, done, logs) => {
-      const target = new URL('/no-such-file', baseUrl).href;
-      request(
-        target,
-        {
-          // Prevents request from complaining that the status is not 200.
-          simple: false,
-        },
-        (err, response, body) => expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              logs: logs(),
-            }).to.deep.equal({
-              err: null,
-              statusCode: 404,
-              body: [
-                '<!DOCTYPE html>',
-                '<html>',
-                '<head>',
-                '<title>File Not Found:',
-                '/no-such-file</title>',
-                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js">',
-                '</script>',
-                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">',
-                '</head>',
-                '<body>',
-                '<div class="userfloat">',
-                '<a class="loginlink" href="/login">login</a>',
-                '</div>',
-                '<h1>404</h1>',
-                '<p>Oops!  Nothing at',
-                `${ target }</p>`,
-                '</body>',
-                '</html>',
-              ],
-              logs: {
-                stderr: '',
-                stdout: 'GET /no-such-file\n',
-              },
-            });
-          }, done));
-    });
-
-    serverTest('GET /echo OK', (baseUrl, done, logs) => {
-      const target = new URL('/echo?a%22=b%27&foo=bar&baz', baseUrl).href;
-      request(
-        target,
-        (err, response, body) => expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              logs: logs(),
-            }).to.deep.equal({
-              err: null,
-              statusCode: 200,
-              // eslint-disable-next-line quotes
-              body: [
-                '<!DOCTYPE html>',
-                '<html>',
-                '<head>',
-                '<title>Database Echo</title>',
-                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js">',
-                '</script>',
-                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">',
-                '</head>',
-                '<body>',
-                '<div class="userfloat">',
-                '<a class="loginlink" href="/login">login</a>',
-                '</div>',
-                '<h1>Echo</h1>',
-                '<table class="echo">',
-                '<tr>',
-                '<th>a&#34;</th>',
-                '<th>foo</th>',
-                '<th>baz</th>',
-                '</tr>',
-                '<tr>',
-                '<td>b&#39;</td>',
-                '<td>bar</td>',
-                '<td>',
-                '</td>',
-                '</tr>',
-                '</table>',
-                '</body>',
-                '</html>',
-              ],
-              logs: {
-                stderr: '',
-                stdout: (
-                  'GET /echo?a%22=b%27&foo=bar&baz\n' +
-                    'echo sending SELECT e\'b\'\'\' AS "a""", \'bar\' AS "foo", \'\' AS "baz"\n'),
-              },
-            });
-          }, done));
-    });
-
-    serverTest('GET /login OK', (baseUrl, done, logs) => {
-      // Test the login flow
-      // 1. Request the login page.
-      // 2. Submit the form with an email.
-      // 3. Redirect to a page and notice that the login link now has a username.
-
-      const loginUrl = new URL('/login', baseUrl).href;
-      const loginUrlWithCont = new URL('?cont=/echo', loginUrl).href;
-      const redirectLocation = new URL('/echo', baseUrl).href;
-      request(
-        loginUrlWithCont,
-        // eslint-disable-next-line no-use-before-define
-        onInitialGet);
-
-      function onInitialGet(err, response, body) {
-        expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              logs: logs(),
-            }).to.deep.equal({
-              err: null,
-              statusCode: 200,
-              // eslint-disable-next-line quotes
-              body: [
-                '<!DOCTYPE html>',
-                '<html>',
-                '<head>',
-                '<title>Login</title>',
-                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0" src="/common.js">',
-                '</script>',
-                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0">',
-                '</head>',
-                '<body>',
-                '<h1>Login</h1>',
-                '<form method="POST" action="/login" id="login">',
-                '<label for="email">Email</label>',
-                '<input name="email"/>',
-                `<input name="cont" type="hidden" value="${ baseUrl.origin }/echo"/>`,
-                '<br/>There is no password input since testing a credential store',
-                'is out of scope for this attack review, and requiring',
-                'credentials or using a federated service like oauth would',
-                'complicate running locally and testing as different users.</form>',
-                '<br/>',
-                '<button type="submit" form="login">Login</button>',
-                `<a href="${ baseUrl.origin }/echo">`,
-                '<button type="button">Cancel</button>',
-                '</a>',
-                '</body>',
-                '</html>',
-              ],
-              logs: {
-                stderr: '',
-                stdout: 'GET /login?cont=/echo\n',
-              },
-            });
-          },
-          done,
-          () => {
-            request.post(
-              loginUrl,
-              {
-                form: {
-                  email: 'foo@bar.com',
-                  cont: `${ baseUrl.origin }/echo`,
+                  request(augmentedRequest, (exc, response, actualBody) => {
+                    if (exc) {
+                      reject(exc);
+                      return;
+                    }
+                    lastResponse = response;
+                    const actualHeaders = {};
+                    for (const headerName of Object.getOwnPropertyNames(headers)) {
+                      actualHeaders[headerName] = response.headers[headerName];
+                    }
+                    try {
+                      expect({
+                        exc: exc || null,
+                        body: normHtml(actualBody),
+                        headers: actualHeaders,
+                        logs: logs(),
+                        statusCode: response && response.statusCode,
+                      }).to.deep.equal({
+                        exc: null,
+                        body,
+                        headers,
+                        logs: {
+                          stderr: stderr || '',
+                          stdout,
+                        },
+                        statusCode,
+                      });
+                    } catch (testFailure) {
+                      reject(testFailure);
+                      return;
+                    }
+                    resolve(null);
+                  });
                 },
-                headers: {
-                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
-                },
-                simple: false,
-              },
-              // eslint-disable-next-line no-use-before-define
-              onPostOfForm);
-          });
-      }
-
-      function onPostOfForm(err, response, body) {
-        expects(
-          () =>
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              location: response && response.headers.location,
-              body: normHtml(body),
-              logs: logs(),
-            }).to.deep.equal({
-              err: null,
-              statusCode: 302,
-              location: redirectLocation,
-              body: [ '' ],
-              logs: {
-                stderr: '',
-                stdout: 'POST /login\n',
-              },
-            }),
-          done,
-          () => {
-            request(
-              redirectLocation,
-              {
-                headers: {
-                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
-                },
-              },
-              // eslint-disable-next-line no-use-before-define
-              onFinalRedirect);
-          });
-      }
-
-      function onFinalRedirect(err, response, body) {
-        expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              logs: logs(),
-            }).to.deep.equal({
-              err: null,
-              statusCode: 200,
-              body: [
-                '<!DOCTYPE html>',
-                '<html>',
-                '<head>',
-                '<title>Database Echo</title>',
-                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3" src="/common.js">',
-                '</script>',
-                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3">',
-                '</head>',
-                '<body>',
-                '<div class="userfloat">',
-                '<span class="user name">Anonymous</span>',
-                '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST">',
-                '<button class="logoutlink" type="submit">logout</button>',
-                '</form>',
-                '</div>',
-                '<h1>Echo</h1>',
-                '<table class="echo">',
-                '<tr>',
-                '<th>Hello</th>',
-                '</tr>',
-                '<tr>',
-                '<td>World</td>',
-                '</tr>',
-                '</table>',
-                '</body>',
-                '</html>',
-              ],
-              logs: {
-                stderr: '',
-                stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
-              },
+                reject);
             });
-          },
-          done);
+          }
+          promise.then(() => done(), done);
+        });
       }
-    });
-    serverTest('POST /login, GET /echo, POST /logout, GET /echo OK', (baseUrl, done, logs) => {
-      function gotEchoLoggedOut(err, response, body) {
-        expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              location: response && response.headers.location,
-              logs: logs(),
-            }).to.deep.equal({
-              body: [
-                '<!DOCTYPE html>',
-                '<html>',
-                '<head>',
-                '<title>Database Echo</title>',
-                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4" src="/common.js">',
-                '</script>',
-                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
-                '</head>',
-                '<body>',
-                '<div class="userfloat">',
-                // No user name.
-                '<a class="loginlink" href="/login">login</a>',
-                '</div>',
-                '<h1>Echo</h1>',
-                '<table class="echo">',
-                '<tr>',
-                '<th>Hello</th>',
-                '</tr>',
-                '<tr>',
-                '<td>World</td>',
-                '</tr>',
-                '</table>',
-                '</body>',
-                '</html>',
-              ],
-              err: null,
-              location: void 0,
-              logs: {
-                stderr: '',
-                stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
-              },
-              statusCode: 200,
-            });
-          },
-          done);
-      }
-
-      function afterPostLogout(err, response, body) {
-        expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              location: response && response.headers.location,
-              logs: logs(),
-            }).to.deep.equal({
-              body: [ '' ],
-              err: null,
-              location: `${ baseUrl.origin }/echo`,
-              logs: {
-                stderr: '',
-                stdout: 'POST /logout\n',
-              },
-              statusCode: 302,
-            });
-          },
-          done,
-          () => {
-            const dest = new URL('/echo', baseUrl);
-            request.get(
-              dest,
-              {
-                headers: {
-                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
-                },
-                simple: false,
-              },
-              // eslint-disable-next-line no-use-before-define
-              gotEchoLoggedOut);
-          });
-      }
-
-      function gotEchoLoggedIn(err, response, body) {
-        expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              location: response && response.headers.location,
-              logs: logs(),
-            }).to.deep.equal({
-              body: [
-                '<!DOCTYPE html>',
-                '<html>',
-                '<head>',
-                '<title>Database Echo</title>',
-                '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2" src="/common.js">',
-                '</script>',
-                '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2">',
-                '</head>',
-                '<body>',
-                '<div class="userfloat">',
-                // Got user name.  See db-tables.js
-                '<span class="user name">Ada</span>',
-                '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST">',
-                '<button class="logoutlink" type="submit">logout</button>',
-                '</form>',
-                '</div>',
-                '<h1>Echo</h1>',
-                '<table class="echo">',
-                '<tr>',
-                '<th>Hello</th>',
-                '</tr>',
-                '<tr>',
-                '<td>World</td>',
-                '</tr>',
-                '</table>',
-                '</body>',
-                '</html>',
-              ],
-              err: null,
-              location: void 0,
-              logs: {
-                stderr: '',
-                stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
-              },
-              statusCode: 200,
-            });
-          },
-          done,
-          () => {
-            const dest = new URL('/logout', baseUrl);
-            request.post(
-              dest,
-              {
-                headers: {
-                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
-                  Referer: `${ baseUrl.origin }/echo`,
-                },
-                simple: false,
-              },
-              // eslint-disable-next-line no-use-before-define
-              afterPostLogout);
-          });
-      }
-
-      function afterPostLogin(err, response, body) {
-        expects(
-          () => {
-            expect({
-              err,
-              statusCode: response && response.statusCode,
-              body: normHtml(body),
-              location: response && response.headers.location,
-              logs: logs(),
-            }).to.deep.equal({
-              body: [ '' ],
-              err: null,
-              location: `${ baseUrl.origin }/echo`,
-              logs: {
-                stderr: '',
-                stdout: 'POST /login\n',
-              },
-              statusCode: 302,
-            });
-          },
-          done,
-          () => {
-            const dest = new URL('/echo', baseUrl);
-            request.get(
-              dest,
-              {
-                headers: {
-                  Cookie: `session=${ encodeURIComponent(sessionCookieForResponse(response)) }`,
-                },
-                simple: false,
-              },
-              // eslint-disable-next-line no-use-before-define
-              gotEchoLoggedIn);
-          });
-      }
-
-      const dest = new URL('/login', baseUrl);
-      request.post(
-        dest,
-        {
-          simple: false,
-          form: {
-            email: 'ada@example.com',
-            cont: `${ baseUrl.origin }/echo`,
-          },
-        },
-        // eslint-disable-next-line no-use-before-define
-        afterPostLogin);
-    });
+    }
   });
 };
