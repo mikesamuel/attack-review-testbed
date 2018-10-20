@@ -11,7 +11,7 @@
 
 // Focus on the first form element.
 document.addEventListener('DOMContentLoaded', function onReady() {
-  var form = document.querySelector('form');
+  var form = document.querySelector('form:not([name="logout"])');
   if (form) {
     var element = form.elements[0];
     if (element && element.focus) {

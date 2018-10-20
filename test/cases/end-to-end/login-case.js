@@ -22,7 +22,7 @@
 const { URL } = require('url');
 
 module.exports = {
-  name: 'GET /login 404',
+  name: 'GET /login 200',
   requests: (baseUrl) => {
     // Test the login flow
     // 1. Request the login page.
@@ -112,7 +112,7 @@ module.exports = {
             '<body>',
             '<div class="userfloat">',
             '<span class="user name">Anonymous</span>',
-            '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST">',
+            '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST" name="logout">',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
             '</div>',
