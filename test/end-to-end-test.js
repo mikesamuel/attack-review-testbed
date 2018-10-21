@@ -195,33 +195,38 @@ module.exports = (makePool) => {
         serverTest(name, (baseUrl, done, logs) => {
           let promise = Promise.resolve(null);
           let lastResponse = null;
-          for (const {
-            req, res: { body = [], statusCode = 200, logs: { stderr = '', stdout = '' }, headers = {} },
-            after,
-          } of requests(baseUrl)) {
+          let lastDerived = null;
+          for (const { req, res, after } of requests(baseUrl)) {
+            const { body = [], statusCode = 200, logs: { stderr = '', stdout = '' }, headers = {} } =
+              typeof res === 'function' ? res(lastResponse, lastDerived) : res;
             promise = new Promise((resolve, reject) => { // eslint-disable-line no-loop-func
               promise.then(
                 () => {
-                  const augmentedRequest = Object.assign({}, req);
+                  const augmentedRequest = Object.assign(
+                    {},
+                    typeof req === 'function' ? req(lastResponse, lastDerived) : req);
                   augmentedRequest.headers = Object.assign({}, augmentedRequest.headers || {});
+                  // Prevents request from complaining that the status is not 200.
+                  augmentedRequest.simple = false;
                   if (lastResponse) {
                     augmentedRequest.headers.Cookie =
                       `session=${ encodeURIComponent(sessionCookieForResponse(lastResponse)) }`;
                   }
-                  // Prevents request from complaining that the status is not 200.
-                  augmentedRequest.simple = false;
 
                   request(augmentedRequest, (exc, response, actualBody) => {
                     if (exc) {
                       reject(exc);
                       return;
                     }
+                    const { lines: bodyLines, derived } = postProcessHtml(actualBody);
                     lastResponse = response;
+                    lastDerived = derived;
+
                     const actualHeaders = {};
                     for (const headerName of Object.getOwnPropertyNames(headers)) {
                       actualHeaders[headerName] = response.headers[headerName];
                     }
-                    const { lines: bodyLines, derived } = postProcessHtml(actualBody);
+
                     try {
                       expect({
                         exc: exc || null,

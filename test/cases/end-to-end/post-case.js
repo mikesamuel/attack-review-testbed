@@ -250,7 +250,31 @@ module.exports = {
           }
         },
       },
-      // TODO: actually post the form
+      {
+        // actually commit the post
+        req(lastResponse, { uploads }) {
+          return {
+            uri: postUrl,
+            method: 'POST',
+            formData: {
+              'body': 'Hello, <b>World</b>! <script>;</script>',
+              'public': 'true',
+              // No preview input.
+              'imagepath': Array.from(uploads.keys()),
+            },
+          };
+        },
+        res: {
+          body: [ 'Posted' ],
+          headers: {
+            location: '/',
+          },
+          logs: {
+            stdout: 'POST /post\n',
+          },
+          statusCode: 302,
+        },
+      },
       // TODO: fetch the index form and see if the new post is there.  Maybe use ?limit to only fetch 2 posts.
     ];
   },
