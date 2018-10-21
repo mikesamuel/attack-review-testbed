@@ -196,7 +196,8 @@ module.exports = (makePool) => {
           let promise = Promise.resolve(null);
           let lastResponse = null;
           for (const {
-            req, res: { body = [], statusCode = 200, logs: { stderr = '', stdout = '' }, headers = {}, after },
+            req, res: { body = [], statusCode = 200, logs: { stderr = '', stdout = '' }, headers = {} },
+            after,
           } of requests(baseUrl)) {
             promise = new Promise((resolve, reject) => { // eslint-disable-line no-loop-func
               promise.then(
@@ -238,10 +239,11 @@ module.exports = (makePool) => {
                         },
                         statusCode,
                       });
-
                       if (after) {
                         after(response, bodyLines, derived);
                       }
+                      // Drain any logs created by after.
+                      expect(logs()).to.deep.equals({ stderr: '', stdout: '' });
                     } catch (testFailure) {
                       reject(testFailure);
                       return;

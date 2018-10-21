@@ -19,10 +19,12 @@
 
 /* eslint array-element-newline: 0 */
 
+const { createHash } = require('crypto');
 // eslint-disable-next-line id-length
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+const { expect } = require('chai');
 
 const projectRoot = path.resolve(path.join(__dirname, '..', '..', '..'));
 
@@ -228,10 +230,27 @@ module.exports = {
           },
         },
         after(response, body, { uploads }) { // eslint-disable-line no-unused-vars
-          // TODO: check that files actually exist
+          const uploadedFiles = Array.from(uploads.keys());
+          // One for each file uploaded
+          expect(uploadedFiles.length).to.equal(2);
+
+          function hashOf(file) {
+            const hash = createHash('sha256');
+            // eslint-disable-next-line no-sync
+            hash.update(fs.readFileSync(file));
+            return hash.digest('hex');
+          }
+
+          const smileyHash = 'f0d865e578b3e8e725284fc9077a6450e31ed13e9a2bf014e25c361dc384faf2';
+          for (const uploadedFileUrl of uploadedFiles) {
+            expect(uploadedFileUrl).to.match(/^[/]user-uploads[/][^/]*$/);
+            const uploadedFile = path.join(
+              projectRoot, 'static', ...(uploadedFileUrl.split(/[/]/g).map(decodeURIComponent)));
+            expect(hashOf(uploadedFile)).to.equal(smileyHash, uploadedFile);
+          }
         },
       },
-      // TODO: actual post the form
+      // TODO: actually post the form
       // TODO: fetch the index form and see if the new post is there.  Maybe use ?limit to only fetch 2 posts.
     ];
   },
