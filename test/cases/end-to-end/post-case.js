@@ -34,10 +34,17 @@ module.exports = {
     // Logs in
     // Drafts a post
     // Uploads some images
+    // Previews the post.
     // Commits
-    // Views the index page.
+    // Views the index page with the new post.
     const loginUrl = new URL('/login', baseUrl).href;
     const postUrl = new URL('/post', baseUrl).href;
+    const indexRelUrl = `/?now=${ Number(new Date('2018-10-22 12:00:00')) }&offset=4`;
+    const indexUrl = new URL(indexRelUrl, baseUrl).href;
+
+    // Store map with randomly generated filenames so we can test stability over
+    // multiple POSTS.
+    let filenameMapFromUploadPost = null;
 
     // eslint-disable-next-line quotes
     return [
@@ -248,6 +255,8 @@ module.exports = {
               projectRoot, 'static', ...(uploadedFileUrl.split(/[/]/g).map(decodeURIComponent)));
             expect(hashOf(uploadedFile)).to.equal(smileyHash, uploadedFile);
           }
+
+          filenameMapFromUploadPost = Array.from(uploads.entries());
         },
       },
       {
@@ -275,7 +284,70 @@ module.exports = {
           statusCode: 302,
         },
       },
-      // TODO: fetch the index form and see if the new post is there.  Maybe use ?limit to only fetch 2 posts.
+      {
+        req: {
+          uri: indexUrl,
+        },
+        res: {
+          body: [
+            '<!DOCTYPE html>',
+            '<html>',
+            '<head>',
+            '<title>Attack Review Testbed</title>',
+            '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx5" src="/common.js">',
+            '</script>',
+            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx5">',
+            '</head>',
+            '<body>',
+            '<div class="userfloat">',
+            '<span class="user name">Ada</span>',
+            `<form class="lightweight" action="/logout?cont=${ encodeURIComponent(indexRelUrl) }"` +
+              ' method="POST" name="logout">',
+            '<button class="logoutlink" type="submit">logout</button>',
+            '</form>',
+            '</div>',
+            '<div class="banner view-as-public">',
+            '</div>',
+            '<h1>Recent Posts</h1>',
+            '<ol class="posts">',
+            '<li>',
+            // Since offset is set, 1 post from canned data
+            '<span class="author name">',
+            '<a href="mailto:fae@fae.fae">',
+            '<font color="green">Fae</font>',
+            '</a>',
+            '</span>',
+            '<span class="created">a week ago</span>',
+            '<div class="body">(It is probably insecure)</div>',
+            '</li>',
+            // The new post
+            '<li>',
+            '<span class="author name">Ada</span>',
+            '<span class="created">2 hours ago</span>',
+            // Sanitized body content
+            '<div class="body">Hello, <b>World</b>! </div>',
+            '<div class="images">',
+            // Images
+            '<a class="usercontent" href="/user-uploads/000000000000000000000000.png">',
+            '<img src="/user-uploads/000000000000000000000000.png"/>',
+            '</a>',
+            '<a class="usercontent" href="/user-uploads/000000000000000000000001.png">',
+            '<img src="/user-uploads/000000000000000000000001.png"/>',
+            '</a>',
+            '</div>',
+            '</li>',
+            '</ol>',
+            '</body>',
+            '</html>',
+          ],
+          logs: {
+            stdout: `GET ${ indexRelUrl }\n`,
+          },
+        },
+        after(response, body, { uploads }) {
+          expect(Array.from(uploads.entries())).to.deep.equal(filenameMapFromUploadPost);
+        },
+      },
     ];
   },
 };
