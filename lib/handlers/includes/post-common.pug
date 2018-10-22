@@ -33,6 +33,8 @@ mixin post_form(preview)
             img.usercontent(src=image)
     br
     input(type="file" name="upload" multiple="multiple")
+    if now
+      input(type="hidden" name="now" value=+now)
     hr
   button(type="submit" name="preview" value="1" form="post-form") Preview
   |

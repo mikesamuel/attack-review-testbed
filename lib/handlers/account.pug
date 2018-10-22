@@ -1,0 +1,41 @@
+mixin title()
+  | Edit Account
+
+mixin body()
+  - let displayName = currentAccount.displayName || ''
+  form(name="account" method="post" action="/account")
+    table.formatting
+      tr
+        td(colspan=2)
+          h1 Public Profile
+      tr
+        td
+          label(for= "displayName") Display Name
+        td
+          input(name="displayName" value=displayName)
+          input(name="displayNameIsHtml" checked=(typeof currentAccount.displayName === 'object') type="checkbox")
+          label(for= "displayNameIsHtml") HTML
+      tr
+        td
+          label(for= "publicUrl") Public URL
+        td
+          input(name="publicUrl" value=(currentAccount.publicUrl || ''))
+      tr
+        td(colspan=2)
+          h1 Private Profile
+      tr
+        td
+          label(for= "realName") Real Name
+        td
+          input(name="realName" value=unbox(currentAccount.realName))
+      tr
+        td
+          label(for= "email") Email
+        td
+          input(name="email" value=unbox(currentAccount.email))
+    input(name="cont" type="hidden" value=cont)
+  button(form="account" type="submit") Submit
+  a(href=cont)
+    button(type="button") Cancel
+
+include includes/envelope.pug

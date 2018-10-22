@@ -31,6 +31,8 @@ const projectRoot = path.resolve(path.join(__dirname, '..', '..', '..'));
 module.exports = {
   name: 'GET /post, POST /post, POST /post, GET /',
   requests: (baseUrl) => {
+    const now = Number(new Date('2018-10-22 12:00:00'));
+
     // Logs in
     // Drafts a post
     // Uploads some images
@@ -39,7 +41,7 @@ module.exports = {
     // Views the index page with the new post.
     const loginUrl = new URL('/login', baseUrl).href;
     const postUrl = new URL('/post', baseUrl).href;
-    const indexRelUrl = `/?now=${ Number(new Date('2018-10-22 12:00:00')) }&offset=4`;
+    const indexRelUrl = `/?now=${ now }&offset=4`;
     const indexUrl = new URL(indexRelUrl, baseUrl).href;
 
     // Store map with randomly generated filenames so we can test stability over
@@ -72,14 +74,14 @@ module.exports = {
       // Request a blank form.
       {
         req: {
-          uri: postUrl,
+          uri: `${ postUrl }?now=${ now }`,
         },
         res: {
           body: [
             '<!DOCTYPE html>',
             '<html>',
             '<head>',
-            '<title>Attack Review Testbed</title>',
+            '<title>New Post</title>',
             '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2" src="/common.js">',
             '</script>',
             '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2">',
@@ -87,7 +89,8 @@ module.exports = {
             '<body>',
             '<div class="userfloat">',
             '<span class="user name">Ada</span>',
-            '<form class="lightweight" action="/logout?cont=%2Fpost" method="POST" name="logout">',
+            '<form class="lightweight"' +
+              ' action="/logout?cont=%2Fpost%3Fnow%3D1540224000000" method="POST" name="logout">',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
             '</div>',
@@ -112,6 +115,7 @@ module.exports = {
             '</div>',
             '<br/>',
             '<input type="file" name="upload" multiple="multiple"/>',
+            '<input type="hidden" name="now" value="1540224000000"/>',
             '<hr/>',
             '</form>',
             '<button type="submit" name="preview" value="1" form="post-form">Preview</button>',
@@ -124,7 +128,7 @@ module.exports = {
             '</html>',
           ],
           logs: {
-            stdout: 'GET /post\n',
+            stdout: `GET /post?now=${ now }\n`,
           },
           statusCode: 200,
         },
@@ -154,6 +158,7 @@ module.exports = {
                 },
               },
             ],
+            now,
           },
         },
         res: {
@@ -161,7 +166,7 @@ module.exports = {
             '<!DOCTYPE html>',
             '<html>',
             '<head>',
-            '<title>Attack Review Testbed</title>',
+            '<title>New Post</title>',
             '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3" src="/common.js">',
             '</script>',
             '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3">',
@@ -169,7 +174,8 @@ module.exports = {
             '<body>',
             '<div class="userfloat">',
             '<span class="user name">Ada</span>',
-            '<form class="lightweight" action="/logout?cont=%2Fpost" method="POST" name="logout">',
+            '<form class="lightweight"' +
+              ' action="/logout?cont=%2Fpost" method="POST" name="logout">',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
             '</div>',
@@ -221,6 +227,7 @@ module.exports = {
             '</div>',
             '<br/>',
             '<input type="file" name="upload" multiple="multiple"/>',
+            '<input type="hidden" name="now" value="1540224000000"/>',
             '<hr/>',
             '</form>',
             '<button type="submit" name="preview" value="1" form="post-form">Preview</button>',
@@ -270,6 +277,7 @@ module.exports = {
               'public': 'true',
               // No preview input.
               'imagepath': Array.from(uploads.keys()),
+              now,
             },
           };
         },
@@ -323,7 +331,7 @@ module.exports = {
             // The new post
             '<li>',
             '<span class="author name">Ada</span>',
-            '<span class="created">2 hours ago</span>',
+            '<span class="created">just now</span>',
             // Sanitized body content
             '<div class="body">Hello, <b>World</b>! </div>',
             '<div class="images">',
