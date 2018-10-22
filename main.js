@@ -61,6 +61,7 @@ require('./lib/module-stubs.js')(isMain);
 // Files that are definitely needed but not loaded during test running.
 // See .mintable.second from package.json.
 require('safesql/package.json');
+require('sh-template-tag/package.json');
 require('web-contract-types/package.json');
 
 // Lock down intrinsics early so security critical code can rely on properties

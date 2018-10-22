@@ -3,7 +3,7 @@ mixin title()
 
 mixin body()
   - let displayName = currentAccount.displayName || ''
-  form(name="account" method="post" action="/account")
+  form(id="account" method="post" action="/account")
     table.formatting
       tr
         td(colspan=2)
@@ -14,7 +14,7 @@ mixin body()
         td
           input(name="displayName" value=displayName)
           input(name="displayNameIsHtml" checked=(typeof currentAccount.displayName === 'object') type="checkbox")
-          label(for= "displayNameIsHtml") HTML
+          label.assocleft(for= "displayNameIsHtml") HTML
       tr
         td
           label(for= "publicUrl") Public URL
@@ -35,7 +35,10 @@ mixin body()
           input(name="email" value=unbox(currentAccount.email))
     input(name="cont" type="hidden" value=cont)
   button(form="account" type="submit") Submit
+  |
+  |
   a(href=cont)
     button(type="button") Cancel
+  br
 
 include includes/envelope.pug

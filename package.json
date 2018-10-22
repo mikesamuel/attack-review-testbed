@@ -27,10 +27,13 @@
     "grants": {
       "web-contract-types/TrustedHTML": [
         "pug-runtime-trusted-types",
+        "./lib/handlers/account.pug",
         "./lib/handlers/echo.pug",
         "./lib/handlers/error.pug",
-        "./lib/handlers/index.pug",
         "./lib/handlers/four-oh-four.pug",
+        "./lib/handlers/index.pug",
+        "./lib/handlers/login.pug",
+        "./lib/handlers/logout.pug",
         "./lib/handlers/post.pug",
         "./lib/safe/html.js"
       ]

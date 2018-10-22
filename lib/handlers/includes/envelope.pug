@@ -9,7 +9,7 @@ html
     if reqUrl.pathname !== '/login'
       .userfloat
         if currentAccount
-          span.user.name
+          a.user.name(href='/account')
             = currentAccount.displayName
           form.lightweight(
               action=`/logout?cont=${encodeURIComponent(reqUrl.pathname + reqUrl.search)}`

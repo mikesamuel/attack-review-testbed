@@ -77,6 +77,10 @@ label {
     padding-left: 1em;
 }
 
+label.assocleft {
+    padding-left: 0;
+}
+
 .userfloat > .user.name:after { content: ' : ' }
 
 form.lightweight {
@@ -106,4 +110,9 @@ button.logoutlink {
 img.usercontent, .usercontent img {
     max-width: 128px;
     max-height: 128px;
+}
+
+form#account > table.formatting input[type="text"],
+form#account > table.formatting input:not([type]) {
+    width: 20em;
 }

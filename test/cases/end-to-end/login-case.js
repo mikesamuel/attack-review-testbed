@@ -111,7 +111,7 @@ module.exports = {
             '</head>',
             '<body>',
             '<div class="userfloat">',
-            '<span class="user name">Anonymous</span>',
+            '<a class="user name" href="/account">Anonymous</a>',
             '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST" name="logout">',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
