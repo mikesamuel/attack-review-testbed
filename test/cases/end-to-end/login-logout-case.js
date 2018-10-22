@@ -67,7 +67,8 @@ module.exports = {
             '<body>',
             '<div class="userfloat">',
             // Got user name.  See db-tables.js
-            '<a class="user name" href="/account">Ada</a>',
+            '<span class="user name">Ada<a class="nounder" href="/account">&#9660;</a>',
+            '</span>',
             '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST" name="logout">',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',

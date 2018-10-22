@@ -9,13 +9,16 @@ html
     if reqUrl.pathname !== '/login'
       .userfloat
         if currentAccount
-          a.user.name(href='/account')
+          span.user.name
             = currentAccount.displayName
-          form.lightweight(
-              action=`/logout?cont=${encodeURIComponent(reqUrl.pathname + reqUrl.search)}`
-              method="POST"
-              name="logout")
-            button.logoutlink(type="submit") logout
+            if reqUrl.pathname !== '/account'
+              a.nounder(href='/account') &#9660;
+          if reqUrl.pathname !== '/logout'
+            form.lightweight(
+                action=`/logout?cont=${encodeURIComponent(reqUrl.pathname + reqUrl.search)}`
+                method="POST"
+                name="logout")
+              button.logoutlink(type="submit") logout
         else
           a.loginlink(href="/login") login
     +body()

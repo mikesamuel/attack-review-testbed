@@ -88,7 +88,8 @@ module.exports = {
             '</head>',
             '<body>',
             '<div class="userfloat">',
-            '<a class="user name" href="/account">Ada</a>',
+            '<span class="user name">Ada<a class="nounder" href="/account">&#9660;</a>',
+            '</span>',
             '<form class="lightweight"' +
               ' action="/logout?cont=%2Fpost%3Fnow%3D1540224000000" method="POST" name="logout">',
             '<button class="logoutlink" type="submit">logout</button>',
@@ -173,7 +174,8 @@ module.exports = {
             '</head>',
             '<body>',
             '<div class="userfloat">',
-            '<a class="user name" href="/account">Ada</a>',
+            '<span class="user name">Ada<a class="nounder" href="/account">&#9660;</a>',
+            '</span>',
             '<form class="lightweight"' +
               ' action="/logout?cont=%2Fpost" method="POST" name="logout">',
             '<button class="logoutlink" type="submit">logout</button>',
@@ -308,7 +310,8 @@ module.exports = {
             '</head>',
             '<body>',
             '<div class="userfloat">',
-            '<a class="user name" href="/account">Ada</a>',
+            '<span class="user name">Ada<a class="nounder" href="/account">&#9660;</a>',
+            '</span>',
             `<form class="lightweight" action="/logout?cont=${ encodeURIComponent(indexRelUrl) }"` +
               ' method="POST" name="logout">',
             '<button class="logoutlink" type="submit">logout</button>',

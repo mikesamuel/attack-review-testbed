@@ -22,7 +22,7 @@
 const { URL } = require('url');
 
 module.exports = {
-  name: 'GET /account, POST /login, POST /account, GET /echo, GET /account',
+  name: 'GET /account, POST /login, POST /account, GET /, GET /account',
   requests: (baseUrl) => [
     {
       req: {
@@ -97,7 +97,7 @@ module.exports = {
           '</head>',
           '<body>',
           '<div class="userfloat">',
-          '<a class="user name" href="/account">Anonymous</a>',
+          '<span class="user name">Anonymous</span>',
           '<form class="lightweight" action="/logout?cont=%2Faccount%3Fcont%3D%2F"' +
             ' method="POST" name="logout">',
           '<button class="logoutlink" type="submit">logout</button>',
@@ -203,8 +203,9 @@ module.exports = {
           '</head>',
           '<body>',
           '<div class="userfloat">',
-          '<a class="user name" href="/account">',
-          '<b>Firstname</b>123</a>',
+          '<span class="user name">',
+          '<b>Firstname</b>123<a class="nounder" href="/account">&#9660;</a>',
+          '</span>',
           '<form class="lightweight" action="/logout?cont=%2F%3Fcount%3D1" method="POST" name="logout">',
           '<button class="logoutlink" type="submit">logout</button>',
           '</form>',
@@ -234,7 +235,10 @@ module.exports = {
     },
     {
       req: {
-        uri: new URL(`${ baseUrl.origin }/account`),
+        uri: `${ baseUrl.origin }/account`,
+        headers: {
+          Referer: `${ baseUrl.origin }/?count=1`,
+        },
       },
       res: {
         body: [
@@ -248,9 +252,9 @@ module.exports = {
           '</head>',
           '<body>',
           '<div class="userfloat">',
-          '<a class="user name" href="/account">',
+          '<span class="user name">',
           // Changed display name
-          '<b>Firstname</b>123</a>',
+          '<b>Firstname</b>123</span>',
           '<form class="lightweight" action="/logout?cont=%2Faccount"' +
             ' method="POST" name="logout">',
           '<button class="logoutlink" type="submit">logout</button>',
@@ -306,10 +310,10 @@ module.exports = {
           '</td>',
           '</tr>',
           '</table>',
-          '<input name="cont" type="hidden" value="/"/>',
+          `<input name="cont" type="hidden" value="${ baseUrl.origin }/?count=1"/>`,
           '</form>',
           '<button form="account" type="submit">Submit</button>',
-          '<a href="/">',
+          `<a href="${ baseUrl.origin }/?count=1">`,
           '<button type="button">Cancel</button>',
           '</a>',
           '<br/>',

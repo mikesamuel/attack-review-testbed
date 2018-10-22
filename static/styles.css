@@ -116,3 +116,7 @@ form#account > table.formatting input[type="text"],
 form#account > table.formatting input:not([type]) {
     width: 20em;
 }
+
+a.nounder {
+    text-decoration: none;
+}
