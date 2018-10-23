@@ -31,7 +31,7 @@ const projectRoot = path.resolve(path.join(__dirname, '..', '..', '..'));
 module.exports = {
   name: 'GET /post, POST /post, POST /post, GET /',
   requests: (baseUrl) => {
-    const now = Number(new Date('2018-10-22 12:00:00'));
+    const now = Number(new Date('2018-10-22 12:00:00Z'));
 
     // Logs in
     // Drafts a post
@@ -91,7 +91,7 @@ module.exports = {
             '<span class="user name">Ada<a class="nounder" href="/account">&#9660;</a>',
             '</span>',
             '<form class="lightweight"' +
-              ' action="/logout?cont=%2Fpost%3Fnow%3D1540224000000" method="POST" name="logout">',
+              ` action="/logout?cont=%2Fpost%3Fnow%3D${ now }" method="POST" name="logout">`,
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
             '</div>',
@@ -116,7 +116,7 @@ module.exports = {
             '</div>',
             '<br/>',
             '<input type="file" name="upload" multiple="multiple"/>',
-            '<input type="hidden" name="now" value="1540224000000"/>',
+            `<input type="hidden" name="now" value="${ now }"/>`,
             '<hr/>',
             '</form>',
             '<button type="submit" name="preview" value="1" form="post-form">Preview</button>',
@@ -229,7 +229,7 @@ module.exports = {
             '</div>',
             '<br/>',
             '<input type="file" name="upload" multiple="multiple"/>',
-            '<input type="hidden" name="now" value="1540224000000"/>',
+            `<input type="hidden" name="now" value="${ now }"/>`,
             '<hr/>',
             '</form>',
             '<button type="submit" name="preview" value="1" form="post-form">Preview</button>',

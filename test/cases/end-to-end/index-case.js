@@ -24,7 +24,8 @@ const { URL } = require('url');
 module.exports = {
   name: 'GET / OK',
   requests: (baseUrl) => {
-    const homePagePath = `/?now=${ Number(new Date('2018-10-12 12:00:00')) }`;
+    const now = Number(new Date('2018-10-12 12:00:00Z'));
+    const homePagePath = `/?now=${ now }`;
     return [
       {
         req: {
