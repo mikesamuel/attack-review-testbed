@@ -53,12 +53,26 @@ module.exports = {
       {
         req: {
           uri: loginUrl,
+        },
+        res: {
+          body: 'IGNORE',
+          logs: {
+            stderr: '',
+            stdout: 'GET /login\n',
+          },
+          statusCode: 200,
+        },
+      },
+      {
+        req: (lastResponse, { csrf }) => ({
+          uri: loginUrl,
           method: 'POST',
           form: {
             cont: '/post',
             email: 'ada@example.com',
+            _csrf: csrf,
           },
-        },
+        }),
         res: {
           body: [ '' ],
           logs: {
@@ -82,9 +96,9 @@ module.exports = {
             '<html>',
             '<head>',
             '<title>New Post</title>',
-            '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2" src="/common.js">',
+            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
             '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2">',
+            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
             '</head>',
             '<body>',
             '<div class="userfloat">',
@@ -92,6 +106,7 @@ module.exports = {
             '</span>',
             '<form class="lightweight"' +
               ` action="/logout?cont=%2Fpost%3Fnow%3D${ now }" method="POST" name="logout">`,
+            '<input name="_csrf" type="hidden" value="xxxx"/>',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
             '</div>',
@@ -106,6 +121,7 @@ module.exports = {
             '</li>',
             '</ol>',
             '<form id="post-form" action="/post" enctype="multipart/form-data" method="POST">',
+            '<input name="_csrf" type="hidden" value="xxxx"/>',
             '<textarea name="body" cols="40" rows="5">',
             '</textarea>',
             '<div>',
@@ -135,15 +151,16 @@ module.exports = {
         },
       },
       {
-        req: {
+        req: (lastResponse, { csrf }) => ({
           uri: postUrl,
           // At some point we have to POST to /post.
           method: 'POST',
           formData: {
-            'body': 'Hello, <b>World</b>! <script>;</script>',
+            body: 'Hello, <b>World</b>! <script>;</script>',
+            _csrf: csrf,
             'public': 'true',
-            'preview': '1',
-            'upload': [
+            preview: '1',
+            upload: [
               {
                 value: fs.createReadStream(path.join(projectRoot, 'static', 'smiley.png')),
                 options: {
@@ -161,16 +178,16 @@ module.exports = {
             ],
             now,
           },
-        },
+        }),
         res: {
           body: [
             '<!DOCTYPE html>',
             '<html>',
             '<head>',
             '<title>New Post</title>',
-            '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3" src="/common.js">',
+            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx5">',
             '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3">',
+            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx5">',
             '</head>',
             '<body>',
             '<div class="userfloat">',
@@ -178,6 +195,7 @@ module.exports = {
             '</span>',
             '<form class="lightweight"' +
               ' action="/logout?cont=%2Fpost" method="POST" name="logout">',
+            '<input name="_csrf" type="hidden" value="xxxx"/>',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
             '</div>',
@@ -201,6 +219,7 @@ module.exports = {
             '</li>',
             '</ol>',
             '<form id="post-form" action="/post" enctype="multipart/form-data" method="POST">',
+            '<input name="_csrf" type="hidden" value="xxxx"/>',
             '<textarea name="body" cols="40" rows="5">' +
               // Unsanitized content in textarea
               'Hello, &lt;b&gt;World&lt;/b&gt;! &lt;script&gt;;&lt;/script&gt;' +
@@ -270,19 +289,18 @@ module.exports = {
       },
       {
         // actually commit the post
-        req(lastResponse, { uploads }) {
-          return {
-            uri: postUrl,
-            method: 'POST',
-            formData: {
-              'body': 'Hello, <b>World</b>! <script>;</script>',
-              'public': 'true',
-              // No preview input.
-              'imagepath': Array.from(uploads.keys()),
-              now,
-            },
-          };
-        },
+        req: (lastResponse, { csrf, uploads }) => ({
+          uri: postUrl,
+          method: 'POST',
+          formData: {
+            body: 'Hello, <b>World</b>! <script>;</script>',
+            _csrf: csrf,
+            'public': 'true',
+            // No preview input.
+            imagepath: Array.from(uploads.keys()),
+            now,
+          },
+        }),
         res: {
           body: [ 'Posted' ],
           headers: {
@@ -304,9 +322,9 @@ module.exports = {
             '<html>',
             '<head>',
             '<title>Attack Review Testbed</title>',
-            '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx5" src="/common.js">',
+            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx7">',
             '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx5">',
+            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx7">',
             '</head>',
             '<body>',
             '<div class="userfloat">',
@@ -314,6 +332,7 @@ module.exports = {
             '</span>',
             `<form class="lightweight" action="/logout?cont=${ encodeURIComponent(indexRelUrl) }"` +
               ' method="POST" name="logout">',
+            '<input name="_csrf" type="hidden" value="xxxx"/>',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
             '</div>',

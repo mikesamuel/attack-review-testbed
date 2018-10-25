@@ -32,12 +32,26 @@ module.exports = {
       {
         req: {
           uri: loginUrl,
+        },
+        res: {
+          body: 'IGNORE',
+          logs: {
+            stderr: '',
+            stdout: 'GET /login\n',
+          },
+          statusCode: 200,
+        },
+      },
+      {
+        req: (lastReponse, { csrf }) => ({
+          uri: loginUrl,
           method: 'POST',
           form: {
+            _csrf: csrf,
             email: 'ada@example.com',
             cont: `${ baseUrl.origin }/echo`,
           },
-        },
+        }),
         res: {
           body: [ '' ],
           headers: {
@@ -60,9 +74,9 @@ module.exports = {
             '<html>',
             '<head>',
             '<title>Database Echo</title>',
-            '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2" src="/common.js">',
+            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
             '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx2">',
+            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
             '</head>',
             '<body>',
             '<div class="userfloat">',
@@ -70,6 +84,7 @@ module.exports = {
             '<span class="user name">Ada<a class="nounder" href="/account">&#9660;</a>',
             '</span>',
             '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST" name="logout">',
+            '<input name="_csrf" type="hidden" value="xxxx"/>',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
             '</div>',
@@ -93,13 +108,16 @@ module.exports = {
         },
       },
       {
-        req: {
+        req: (lastReponse, { csrf }) => ({
           uri: logoutUrl,
           headers: {
             Referer: `${ baseUrl.origin }/echo`,
           },
           method: 'POST',
-        },
+          form: {
+            _csrf: csrf,
+          },
+        }),
         res: {
           body: [ '' ],
           headers: {
@@ -122,9 +140,9 @@ module.exports = {
             '<html>',
             '<head>',
             '<title>Database Echo</title>',
-            '<script nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4" src="/common.js">',
+            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx6">',
             '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
+            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx6">',
             '</head>',
             '<body>',
             '<div class="userfloat">',

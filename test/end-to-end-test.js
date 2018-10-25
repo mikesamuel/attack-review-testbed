@@ -44,19 +44,6 @@ function noop() {
   // This function body left intentionally blank.
 }
 
-function sessionCookieForResponse({ headers }) {
-  const setCookies = headers['set-cookie'];
-  if (setCookies) {
-    for (const setCookie of setCookies) {
-      const [ , session ] = /^session=([^;]*)/.exec(setCookie) || [];
-      if (session) {
-        return decodeURIComponent(session);
-      }
-    }
-  }
-  return void 0;
-}
-
 module.exports = (makePool) => {
   function withServer(onStart, { cannedData = true }) {
     let i = 0;
@@ -165,6 +152,7 @@ module.exports = (makePool) => {
 
   function postProcessHtml(html) {
     const uploads = new Map();
+    let csrf = null;
     html = html.replace(
       /[/]user-uploads[/]([^/."'?# \n]+)[.](\w+)/g,
       (match, basename, ext) => {
@@ -177,9 +165,16 @@ module.exports = (makePool) => {
         }
         return replacement;
       });
+    html = html.replace(
+      /(<input name="_csrf" type="hidden" value=)"([^"]+)"\/?>/g,
+      (whole, prefix, value) => {
+        csrf = value;
+        return `${ prefix }"xxxx"/>`;
+      });
     return {
       lines: html.replace(/></g, '>\n<').split(/\n/g),
       derived: {
+        csrf,
         uploads,
       },
     };
@@ -189,6 +184,22 @@ module.exports = (makePool) => {
     const casesDir = path.join(__dirname, 'cases', 'end-to-end');
     // eslint-disable-next-line no-sync
     for (const file of fs.readdirSync(casesDir)) {
+      const cookieJar = Object.create(null);
+      function cookiesForResponse({ headers }) { // eslint-disable-line no-inner-declarations
+        const cookies = headers['set-cookie'];
+        if (cookies) {
+          for (const cookie of cookies) {
+            const match = /^([^=;]*)=([^;]*)/.exec(cookie);
+            if (match) {
+              const [ , name, value ] = match;
+              cookieJar[name] = value;
+            }
+          }
+        }
+        return Object.entries(cookieJar)
+          .map(([ name, value ]) => `${ name }=${ value }`).join('; ');
+      }
+
       if (/-case\.js$/.test(file)) {
         // eslint-disable-next-line global-require
         const { name, requests } = require(path.resolve(path.join(casesDir, file)));
@@ -208,9 +219,16 @@ module.exports = (makePool) => {
                   augmentedRequest.headers = Object.assign({}, augmentedRequest.headers || {});
                   // Prevents request from complaining that the status is not 200.
                   augmentedRequest.simple = false;
+                  if (lastDerived && lastDerived.csrf) {
+                    if (augmentedRequest.form) {
+                      augmentedRequest.form.csrf = lastDerived.csrf;
+                    } else if (augmentedRequest.formData) {
+                      augmentedRequest.formData.csrf = lastDerived.csrf;
+                    }
+                  }
+
                   if (lastResponse) {
-                    augmentedRequest.headers.Cookie =
-                      `session=${ encodeURIComponent(sessionCookieForResponse(lastResponse)) }`;
+                    augmentedRequest.headers.Cookie = cookiesForResponse(lastResponse);
                   }
 
                   request(augmentedRequest, (exc, response, actualBody) => {
@@ -227,23 +245,30 @@ module.exports = (makePool) => {
                       actualHeaders[headerName] = response.headers[headerName];
                     }
 
+                    const got = {
+                      exc: exc || null,
+                      body: bodyLines,
+                      headers: actualHeaders,
+                      logs: logs(),
+                      statusCode: response && response.statusCode,
+                    };
+                    const want = {
+                      exc: null,
+                      body,
+                      headers,
+                      logs: {
+                        stderr,
+                        stdout,
+                      },
+                      statusCode,
+                    };
+                    if (want.body === 'IGNORE') {
+                      delete got.body;
+                      delete want.body;
+                    }
+
                     try {
-                      expect({
-                        exc: exc || null,
-                        body: bodyLines,
-                        headers: actualHeaders,
-                        logs: logs(),
-                        statusCode: response && response.statusCode,
-                      }).to.deep.equal({
-                        exc: null,
-                        body,
-                        headers,
-                        logs: {
-                          stderr,
-                          stdout,
-                        },
-                        statusCode,
-                      });
+                      expect(got).to.deep.equal(want);
                       if (after) {
                         after(response, bodyLines, derived);
                       }

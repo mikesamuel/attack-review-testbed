@@ -3,8 +3,8 @@ html
   head
     title
       +title()
-    script(nonce=cspNonce src='/common.js')
-    link(rel='stylesheet' href='/styles.css' nonce=cspNonce)
+    script(src='/common.js')
+    link(rel='stylesheet' href='/styles.css')
   body
     if reqUrl.pathname !== '/login'
       .userfloat
