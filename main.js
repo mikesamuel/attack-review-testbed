@@ -25,48 +25,12 @@
  * before any monkeypatching by the majority of unprivileged modules.
  */
 
-// Load hooks so that dependency graph is complete when running in test mode.
-const { setInsecure } = require('./lib/init-hooks.js');
-
-const process = require('process');
 const path = require('path');
-const { isProduction } = require('./lib/framework/is-prod.js');
+const process = require('process');
 
-// eslint-disable-next-line no-process-env
-const insecureMode = !isProduction && process.env.UNSAFE_DISABLE_NODE_SEC_HOOKS === 'true';
 const isMain = require.main === module;
 
-const nodeSecPatterns = require('node-sec-patterns');
-const packageJson = require('./package.json');
-
-if (insecureMode) {
-  // There will inevitably be a "disable because I'm developing" switch so
-  // we ought test whether it's easy to workaround checks that dev features
-  // aren't abusable in production.
-  // eslint-disable-next-line no-console
-  console.log('Running in insecure mode');
-  setInsecure(true);
-} else if (isMain) {
-  // If not running as part of tests, then configure access
-  // control checks to contract type constructors.
-  nodeSecPatterns.authorize(packageJson);
-}
-
-// Install module stubs.
-require('./lib/module-stubs.js')(isMain);
-// We don't want to install module stubs when running under
-// generate-production-source-list since that would mean that
-// the resource-integrity-hook rejects the access.
-
-// Files that are definitely needed but not loaded during test running.
-// See .mintable.second from package.json.
-require('safesql/package.json');
-require('sh-template-tag/package.json');
-require('web-contract-types/package.json');
-
-// Lock down intrinsics early so security critical code can rely on properties
-// of objects that they create and which do not escape.
-require('./lib/framework/lockdown.js')();
+require('./lib/bootstrap-secure.js')(path.resolve(__dirname), isMain);
 
 const { start } = require('./lib/server.js');
 const safepg = require('./lib/safe/pg.js');

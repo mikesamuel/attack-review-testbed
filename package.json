@@ -59,6 +59,7 @@
       "mode": "enforce",
       "ids": [
         "main.js",
+        "lib/bootstrap-secure.js",
         "lib/framework/builtin-module-ids.js",
         "lib/framework/is-prod.js",
         "lib/framework/lockdown.js",
