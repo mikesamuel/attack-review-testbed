@@ -21,6 +21,9 @@
 
 const { URL } = require('url');
 
+const now = Number(new Date('2018-10-12 12:00:00Z'));
+const indexRelUrl = `/?count=1&now=${ now }`;
+
 module.exports = {
   name: 'GET /account, POST /login, POST /account, GET /, GET /account',
   requests: (baseUrl) => [
@@ -194,7 +197,7 @@ module.exports = {
     },
     {
       req: {
-        uri: new URL(`${ baseUrl.origin }/?count=1`),
+        uri: new URL(`${ baseUrl.origin }${ indexRelUrl }`),
       },
       res: {
         body: [
@@ -211,7 +214,8 @@ module.exports = {
           '<span class="user name">',
           '<b>Firstname</b>123<a class="nounder" href="/account">&#9660;</a>',
           '</span>',
-          '<form class="lightweight" action="/logout?cont=%2F%3Fcount%3D1" method="POST" name="logout">',
+          `<form class="lightweight" action="/logout?cont=${ encodeURIComponent(indexRelUrl) }"` +
+            ' method="POST" name="logout">',
           '<input name="_csrf" type="hidden" value="xxxx"/>',
           '<button class="logoutlink" type="submit">logout</button>',
           '</form>',
@@ -222,7 +226,7 @@ module.exports = {
           '<ol class="posts">',
           '<li>',
           '<span class="author name">Ada</span>',
-          '<span class="created">2 weeks ago</span>',
+          '<span class="created">a week ago</span>',
           '<div class="body">Hi!  My name is <b>Ada</b>.  Nice to meet you!</div>',
           '<div class="images">',
           '<a class="usercontent" href="smiley.png">',
@@ -235,7 +239,7 @@ module.exports = {
           '</html>',
         ],
         logs: {
-          stdout: 'GET /?count=1\n',
+          stdout: `GET ${ indexRelUrl }\n`,
         },
       },
     },
