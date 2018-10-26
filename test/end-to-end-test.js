@@ -202,8 +202,8 @@ module.exports = (makePool) => {
 
       if (/-case\.js$/.test(file)) {
         // eslint-disable-next-line global-require
-        const { name, requests } = require(path.resolve(path.join(casesDir, file)));
-        serverTest(name, (baseUrl, done, logs) => {
+        const { requests } = require(path.resolve(path.join(casesDir, file)));
+        serverTest(file.replace(/\.js$/, ''), (baseUrl, done, logs) => {
           let promise = Promise.resolve(null);
           let lastResponse = null;
           let lastDerived = null;
@@ -245,11 +245,14 @@ module.exports = (makePool) => {
                       actualHeaders[headerName] = response.headers[headerName];
                     }
 
+                    const stableLogs = logs();
+                    stableLogs.stderr = stableLogs.stderr.replace(/\n {4}at .*/g, '');
+
                     const got = {
                       exc: exc || null,
                       body: bodyLines,
                       headers: actualHeaders,
-                      logs: logs(),
+                      logs: stableLogs,
                       statusCode: response && response.statusCode,
                     };
                     const want = {
