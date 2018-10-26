@@ -1,4 +1,4 @@
-#!/usr/bin/env ./bin/node --cjs-loader ./lib/init-hooks.js --disallow_code_generation_from_strings
+#!/usr/bin/env ./bin/node --cjs-loader ./lib/framework/init-hooks.js --disallow_code_generation_from_strings
 
 /**
  * @license
@@ -30,7 +30,7 @@ const process = require('process');
 
 const isMain = require.main === module;
 
-require('./lib/bootstrap-secure.js')(path.resolve(__dirname), isMain);
+require('./lib/framework/bootstrap-secure.js')(path.resolve(__dirname), isMain);
 
 const { start } = require('./lib/server.js');
 const safepg = require('./lib/safe/pg.js');

@@ -59,7 +59,7 @@
       "mode": "enforce",
       "ids": [
         "main.js",
-        "lib/bootstrap-secure.js",
+        "lib/framework/bootstrap-secure.js",
         "lib/framework/builtin-module-ids.js",
         "lib/framework/is-prod.js",
         "lib/framework/lockdown.js",
@@ -92,8 +92,8 @@
         "lib/framework/lockdown.js"
       ]
     },
-    "./lib/init-hooks.js": [
-      "./main.js"
+    "./lib/framework/init-hooks.js": [
+      "./lib/framework/bootstrap-secure.js"
     ],
     "pg": {
       "advice": "Use safe/pg.js instead.",

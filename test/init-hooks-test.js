@@ -20,7 +20,7 @@
 const { expect } = require('chai');
 const { describe, it } = require('mocha');
 
-const hook = require('../lib/init-hooks.js');
+const hook = require('../lib/framework/init-hooks.js');
 const { runHook } = require('./run-hook.js');
 
 describe('init-hooks', () => {
