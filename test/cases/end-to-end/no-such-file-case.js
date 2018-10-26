@@ -23,41 +23,38 @@ const { URL } = require('url');
 
 module.exports = {
   name: 'GET /no-such-file 404',
-  requests: (baseUrl) => {
-    const uri = new URL('/no-such-file', baseUrl).href;
-    return [
-      {
-        req: {
-          uri,
-        },
-        res: {
-          body: [
-            '<!DOCTYPE html>',
-            '<html>',
-            '<head>',
-            '<title>File Not Found:',
-            '/no-such-file</title>',
-            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1">',
-            '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1">',
-            '</head>',
-            '<body>',
-            '<div class="userfloat">',
-            '<a class="loginlink" href="/login">login</a>',
-            '</div>',
-            '<h1>404</h1>',
-            '<p>Oops!  Nothing at',
-            `${ uri }</p>`,
-            '</body>',
-            '</html>',
-          ],
-          logs: {
-            stderr: '',
-            stdout: 'GET /no-such-file\n',
-          },
-          statusCode: 404,
-        },
+  requests: (baseUrl) => [
+    {
+      req: {
+        uri: new URL('/no-such-file', baseUrl).href,
       },
-    ];
-  },
+      res: {
+        body: [
+          '<!DOCTYPE html>',
+          '<html>',
+          '<head>',
+          '<title>File Not Found:',
+          '/no-such-file</title>',
+          '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1">',
+          '</script>',
+          '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1">',
+          '</head>',
+          '<body>',
+          '<div class="userfloat">',
+          '<a class="loginlink" href="/login">login</a>',
+          '</div>',
+          '<h1>404</h1>',
+          '<p>Oops!  Nothing at',
+          `${ baseUrl.origin }/no-such-file</p>`,
+          '</body>',
+          '</html>',
+        ],
+        logs: {
+          stderr: '',
+          stdout: 'GET /no-such-file\n',
+        },
+        statusCode: 404,
+      },
+    },
+  ],
 };

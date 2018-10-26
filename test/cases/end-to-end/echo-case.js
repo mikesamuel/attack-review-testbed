@@ -23,53 +23,50 @@ const { URL } = require('url');
 
 module.exports = {
   name: 'GET /echo OK',
-  requests: (baseUrl) => {
-    const uri = new URL('/echo?a%22=b%27&foo=bar&baz', baseUrl).href;
-    return [
-      {
-        req: {
-          uri,
-        },
-        res: {
-          body: [
-            '<!DOCTYPE html>',
-            '<html>',
-            '<head>',
-            '<title>Database Echo</title>',
-            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1">',
-            '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1">',
-            '</head>',
-            '<body>',
-            '<div class="userfloat">',
-            '<a class="loginlink" href="/login">login</a>',
-            '</div>',
-            '<h1>Echo</h1>',
-            '<table class="echo">',
-            '<tr>',
-            '<th>a&#34;</th>',
-            '<th>foo</th>',
-            '<th>baz</th>',
-            '</tr>',
-            '<tr>',
-            '<td>b&#39;</td>',
-            '<td>bar</td>',
-            '<td>',
-            '</td>',
-            '</tr>',
-            '</table>',
-            '</body>',
-            '</html>',
-          ],
-          logs: {
-            stderr: '',
-            stdout: (
-              'GET /echo?a%22=b%27&foo=bar&baz\n' +
-                'echo sending SELECT e\'b\'\'\' AS "a""", \'bar\' AS "foo", \'\' AS "baz"\n'),
-          },
-          statusCode: 200,
-        },
+  requests: (baseUrl) => [
+    {
+      req: {
+        uri: new URL('/echo?a%22=b%27&foo=bar&baz', baseUrl).href,
       },
-    ];
-  },
+      res: {
+        body: [
+          '<!DOCTYPE html>',
+          '<html>',
+          '<head>',
+          '<title>Database Echo</title>',
+          '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1">',
+          '</script>',
+          '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx1">',
+          '</head>',
+          '<body>',
+          '<div class="userfloat">',
+          '<a class="loginlink" href="/login">login</a>',
+          '</div>',
+          '<h1>Echo</h1>',
+          '<table class="echo">',
+          '<tr>',
+          '<th>a&#34;</th>',
+          '<th>foo</th>',
+          '<th>baz</th>',
+          '</tr>',
+          '<tr>',
+          '<td>b&#39;</td>',
+          '<td>bar</td>',
+          '<td>',
+          '</td>',
+          '</tr>',
+          '</table>',
+          '</body>',
+          '</html>',
+        ],
+        logs: {
+          stderr: '',
+          stdout: (
+            'GET /echo?a%22=b%27&foo=bar&baz\n' +
+              'echo sending SELECT e\'b\'\'\' AS "a""", \'bar\' AS "foo", \'\' AS "baz"\n'),
+        },
+        statusCode: 200,
+      },
+    },
+  ],
 };

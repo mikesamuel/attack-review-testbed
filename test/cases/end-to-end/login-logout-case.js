@@ -23,152 +23,145 @@ const { URL } = require('url');
 
 module.exports = {
   name: 'POST /login, GET /echo, POST /logout, GET /echo OK',
-  requests: (baseUrl) => {
-    const echoUrl = new URL('/echo', baseUrl);
-    const loginUrl = new URL('/login', baseUrl);
-    const logoutUrl = new URL('/logout', baseUrl);
-
-    return [
-      {
-        req: {
-          uri: loginUrl,
-        },
-        res: {
-          body: 'IGNORE',
-          logs: {
-            stderr: '',
-            stdout: 'GET /login\n',
-          },
-          statusCode: 200,
-        },
+  requests: (baseUrl) => [
+    {
+      req: {
+        uri: new URL('/login', baseUrl).href,
       },
-      {
-        req: (lastReponse, { csrf }) => ({
-          uri: loginUrl,
-          method: 'POST',
-          form: {
-            _csrf: csrf,
-            email: 'ada@example.com',
-            cont: `${ baseUrl.origin }/echo`,
-          },
-        }),
-        res: {
-          body: [ '' ],
-          headers: {
-            location: `${ baseUrl.origin }/echo`,
-          },
-          logs: {
-            stderr: '',
-            stdout: 'POST /login\n',
-          },
-          statusCode: 302,
+      res: {
+        body: 'IGNORE',
+        logs: {
+          stderr: '',
+          stdout: 'GET /login\n',
         },
+        statusCode: 200,
       },
-      {
-        req: {
-          uri: echoUrl,
+    },
+    {
+      req: (lastReponse, { csrf }) => ({
+        uri: new URL('/login', baseUrl).href,
+        method: 'POST',
+        form: {
+          _csrf: csrf,
+          email: 'ada@example.com',
+          cont: `${ baseUrl.origin }/echo`,
         },
-        res: {
-          body: [
-            '<!DOCTYPE html>',
-            '<html>',
-            '<head>',
-            '<title>Database Echo</title>',
-            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
-            '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
-            '</head>',
-            '<body>',
-            '<div class="userfloat">',
-            // Got user name.  See db-tables.js
-            '<span class="user name">Ada<a class="nounder" href="/account">&#9660;</a>',
-            '</span>',
-            '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST" name="logout">',
-            '<input name="_csrf" type="hidden" value="xxxx"/>',
-            '<button class="logoutlink" type="submit">logout</button>',
-            '</form>',
-            '</div>',
-            '<h1>Echo</h1>',
-            '<table class="echo">',
-            '<tr>',
-            '<th>Hello</th>',
-            '</tr>',
-            '<tr>',
-            '<td>World</td>',
-            '</tr>',
-            '</table>',
-            '</body>',
-            '</html>',
-          ],
-          logs: {
-            stderr: '',
-            stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
-          },
-          statusCode: 200,
+      }),
+      res: {
+        body: [ '' ],
+        headers: {
+          location: `${ baseUrl.origin }/echo`,
         },
+        logs: {
+          stderr: '',
+          stdout: 'POST /login\n',
+        },
+        statusCode: 302,
       },
-      {
-        req: (lastReponse, { csrf }) => ({
-          uri: logoutUrl,
-          headers: {
-            Referer: `${ baseUrl.origin }/echo`,
-          },
-          method: 'POST',
-          form: {
-            _csrf: csrf,
-          },
-        }),
-        res: {
-          body: [ '' ],
-          headers: {
-            location: `${ baseUrl.origin }/echo`,
-          },
-          logs: {
-            stderr: '',
-            stdout: 'POST /logout\n',
-          },
-          statusCode: 302,
-        },
+    },
+    {
+      req: {
+        uri: new URL('/echo', baseUrl).href,
       },
-      {
-        req: {
-          uri: echoUrl,
+      res: {
+        body: [
+          '<!DOCTYPE html>',
+          '<html>',
+          '<head>',
+          '<title>Database Echo</title>',
+          '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
+          '</script>',
+          '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
+          '</head>',
+          '<body>',
+          '<div class="userfloat">',
+          // Got user name.  See db-tables.js
+          '<span class="user name">Ada<a class="nounder" href="/account">&#9660;</a>',
+          '</span>',
+          '<form class="lightweight" action="/logout?cont=%2Fecho" method="POST" name="logout">',
+          '<input name="_csrf" type="hidden" value="xxxx"/>',
+          '<button class="logoutlink" type="submit">logout</button>',
+          '</form>',
+          '</div>',
+          '<h1>Echo</h1>',
+          '<table class="echo">',
+          '<tr>',
+          '<th>Hello</th>',
+          '</tr>',
+          '<tr>',
+          '<td>World</td>',
+          '</tr>',
+          '</table>',
+          '</body>',
+          '</html>',
+        ],
+        logs: {
+          stderr: '',
+          stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
         },
-        res: {
-          body: [
-            '<!DOCTYPE html>',
-            '<html>',
-            '<head>',
-            '<title>Database Echo</title>',
-            '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx6">',
-            '</script>',
-            '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx6">',
-            '</head>',
-            '<body>',
-            '<div class="userfloat">',
-            // No user name.
-            '<a class="loginlink" href="/login">login</a>',
-            '</div>',
-            '<h1>Echo</h1>',
-            '<table class="echo">',
-            '<tr>',
-            '<th>Hello</th>',
-            '</tr>',
-            '<tr>',
-            '<td>World</td>',
-            '</tr>',
-            '</table>',
-            '</body>',
-            '</html>',
-          ],
-          logs: {
-            stderr: '',
-            stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
-          },
-          statusCode: 200,
-        },
+        statusCode: 200,
       },
-    ];
-  },
+    },
+    {
+      req: (lastReponse, { csrf }) => ({
+        uri: new URL('/logout', baseUrl).href,
+        headers: {
+          Referer: `${ baseUrl.origin }/echo`,
+        },
+        method: 'POST',
+        form: {
+          _csrf: csrf,
+        },
+      }),
+      res: {
+        body: [ '' ],
+        headers: {
+          location: `${ baseUrl.origin }/echo`,
+        },
+        logs: {
+          stderr: '',
+          stdout: 'POST /logout\n',
+        },
+        statusCode: 302,
+      },
+    },
+    {
+      req: {
+        uri: new URL('/echo', baseUrl).href,
+      },
+      res: {
+        body: [
+          '<!DOCTYPE html>',
+          '<html>',
+          '<head>',
+          '<title>Database Echo</title>',
+          '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx6">',
+          '</script>',
+          '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx6">',
+          '</head>',
+          '<body>',
+          '<div class="userfloat">',
+          // No user name.
+          '<a class="loginlink" href="/login">login</a>',
+          '</div>',
+          '<h1>Echo</h1>',
+          '<table class="echo">',
+          '<tr>',
+          '<th>Hello</th>',
+          '</tr>',
+          '<tr>',
+          '<td>World</td>',
+          '</tr>',
+          '</table>',
+          '</body>',
+          '</html>',
+        ],
+        logs: {
+          stderr: '',
+          stdout: 'GET /echo\necho sending SELECT \'World\' AS "Hello"\n',
+        },
+        statusCode: 200,
+      },
+    },
+  ],
 };
-

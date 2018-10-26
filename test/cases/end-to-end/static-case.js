@@ -23,26 +23,24 @@ const { URL } = require('url');
 
 module.exports = {
   name: 'GET /hello-world.html OK',
-  requests(baseUrl) {
-    return [
-      {
-        req: {
-          url: new URL('/hello-world.html', baseUrl).href,
-          method: 'GET',
-        },
-        res: {
-          statusCode: 200,
-          body: [
-            '<!doctype html>',
-            'Hello, World!',
-            '',
-          ],
-          logs: {
-            stderr: '',
-            stdout: '',
-          },
+  requests: (baseUrl) => [
+    {
+      req: {
+        url: new URL('/hello-world.html', baseUrl).href,
+        method: 'GET',
+      },
+      res: {
+        statusCode: 200,
+        body: [
+          '<!doctype html>',
+          'Hello, World!',
+          '',
+        ],
+        logs: {
+          stderr: '',
+          stdout: '',
         },
       },
-    ];
-  },
+    },
+  ],
 };
