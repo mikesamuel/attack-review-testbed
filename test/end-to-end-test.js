@@ -117,7 +117,7 @@ module.exports = (makePool) => {
   }
 
   function serverTestFunction(testFun) {
-    return function test(done) {
+    return function serverTest(done) {
       this.slow(250); // eslint-disable-line no-invalid-this
       withServer(
         (startErr, url, stop, logs) => {
@@ -149,6 +149,6 @@ module.exports = (makePool) => {
   }
 
   describe('end-to-end', () => {
-    runEndToEndCases(serverTestFunction);
+    runEndToEndCases(serverTestFunction, false);
   });
 };

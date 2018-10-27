@@ -31,37 +31,7 @@ const fs = require('fs');
 const path = require('path');
 const request = require('request');
 
-function postProcessHtml(html) {
-  const uploads = new Map();
-  let csrf = null;
-  html = html.replace(
-    /[/]user-uploads[/]([^/."'?# \n]+)[.](\w+)/g,
-    (match, basename, ext) => {
-      let replacement = uploads.get(match);
-      if (!replacement) {
-        const serial = String(uploads.size);
-        const padding = '0'.repeat(basename.length - serial.length);
-        replacement = `/user-uploads/${ padding }${ serial }.${ ext }`;
-        uploads.set(match, replacement);
-      }
-      return replacement;
-    });
-  html = html.replace(
-    /(<input name="_csrf" type="hidden" value=)"([^"]+)"\/?>/g,
-    (whole, prefix, value) => {
-      csrf = value;
-      return `${ prefix }"xxxx"/>`;
-    });
-  return {
-    lines: html.replace(/></g, '>\n<').split(/\n/g),
-    derived: {
-      csrf,
-      uploads,
-    },
-  };
-}
-
-module.exports = function runEndToEndCases(makeTestFunction) {
+module.exports = function runEndToEndCases(makeTestFunction, isProduction) {
   const casesDir = path.join(__dirname, 'cases', 'end-to-end');
   // eslint-disable-next-line no-sync
   for (const file of fs.readdirSync(casesDir)) {
@@ -90,8 +60,55 @@ module.exports = function runEndToEndCases(makeTestFunction) {
     const testFunction = makeTestFunction((baseUrl, done, logs) => {
       let promise = Promise.resolve(null);
       let lastResponse = null;
+      // State derived from lastResponse's body.
       let lastDerived = null;
-      for (const { req, res, after } of requests(baseUrl)) {
+      // Keep track of request-scoped nonces so we can detect reuse.
+      const requestNoncesSeen = new Map();
+
+      function postProcessHtml(html) {
+        const uploads = new Map();
+        let csrf = null;
+        html = html.replace(
+          /[/]user-uploads[/]([^/."'?# \n]+)[.](\w+)/g,
+          (match, basename, ext) => {
+            let replacement = uploads.get(match);
+            if (!replacement) {
+              const serial = String(uploads.size);
+              const padding = '0'.repeat(basename.length - serial.length);
+              replacement = `/user-uploads/${ padding }${ serial }.${ ext }`;
+              uploads.set(match, replacement);
+            }
+            return replacement;
+          });
+        html = html.replace(
+          /(<input name="_csrf" type="hidden" value=)"([^"]+)"\/?>/g,
+          (whole, prefix, value) => {
+            csrf = value;
+            return `${ prefix }"xxxx"/>`;
+          });
+        html = html.replace(
+          /( nonce=)"([^"\n]{8,})"/g,
+          (whole, prefix, nonce) => {
+            // If our random number generator generates duplicates, we will
+            // get spurious golden failures.  Our nonces should have > 128B
+            // of entropy when running tests as external processes so this
+            // should not be a problem in practice, and we really need to
+            // know if our request nonces are not narrowly scoped.
+            if (!requestNoncesSeen.has(nonce)) {
+              requestNoncesSeen.set(nonce, requestNoncesSeen.size);
+            }
+            return `${ prefix }"xxxx${ requestNoncesSeen.get(nonce) }"`;
+          });
+        return {
+          lines: html.replace(/></g, '>\n<').split(/\n/g),
+          derived: {
+            csrf,
+            uploads,
+          },
+        };
+      }
+
+      for (const { req, res, after } of requests(baseUrl, isProduction)) {
         const { body = [], statusCode = 200, logs: { stderr = '', stdout = '' }, headers = {} } =
           typeof res === 'function' ? res(lastResponse, lastDerived) : res;
         promise = new Promise((resolve, reject) => { // eslint-disable-line no-loop-func

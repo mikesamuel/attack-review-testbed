@@ -110,7 +110,7 @@
     "jsdom": "^12.2.0",
     "mime-types": "^2.1.20",
     "multiparty": "^4.2.1",
-    "node-sec-patterns": "^2.0.6",
+    "node-sec-patterns": "^2.0.7",
     "pg": "^7.5.0",
     "pug": "^2.0.3",
     "pug-require": "^1.0.11-alpha",

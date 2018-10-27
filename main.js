@@ -74,6 +74,7 @@ if (isMain) {
           // eslint-disable-next-line no-console
           console.error(exc);
         } else {
+          // Our test fixtures depends on this exact format string.
           // eslint-disable-next-line no-console
           console.log(`Serving from ${ hostName }:${ actualPort } at ${ rootDir }`);
         }
@@ -93,6 +94,7 @@ if (isMain) {
     if (initDb) {
       initializeTablesWithTestData(database).then(
         () => {
+          // Our test fixtures depends on this exact string.
           // eslint-disable-next-line no-console
           console.log('Database seeded with test data');
         },

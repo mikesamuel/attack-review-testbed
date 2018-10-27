@@ -7,22 +7,23 @@ mkdir -p generated
 
 # Generate the production source list
 # Run the tests once to make sure we have an up-to-date production source list,
-# and if there are failures and the production source list changed, rerun.
 PROD_SOURCE_LIST=
 PROD_MASTER_HASH=
 if [ -f generated/prod-sources.json ]; then
     PROD_MASTER_HASH="$(shasum -a 256 generated/prod-sources.json)"
 fi
-if ! scripts/generate-production-source-list.js generated/prod-sources; then
+if ! SOURCE_LIST_UP_TO_DATE=0 scripts/generate-production-source-list.js generated/prod-sources; then
     NEW_PROD_MASTER_HASH="$(shasum -a 256 generated/prod-sources.json)"
     if [[ "$PROD_MASTER_HASH" != "$NEW_PROD_MASTER_HASH" ]]; then
-        echo Rerunning tests with updated production source list
+        echo Updated production source list
         echo . "$PROD_MASTER_HASH" '->' "$NEW_PROD_MASTER_HASH"
-        scripts/generate-production-source-list.js generated/prod-sources
+        echo Rerunning
     else
         exit 1
     fi
 fi
+# Rerun knowing that the source list is up-to-date.
+SOURCE_LIST_UP_TO_DATE=1 scripts/generate-production-source-list.js generated/prod-sources
 
 if [[ "$TRAVIS" != "true" ]]; then
     # Sanity check the server by starting it, and then tell it to hangup.

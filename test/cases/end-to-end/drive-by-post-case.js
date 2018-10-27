@@ -32,7 +32,7 @@ const now = Number(new Date('2018-10-22 12:00:00Z'));
 const indexRelUrl = `/?now=${ now }&offset=4`;
 
 module.exports = {
-  requests: (baseUrl) => [
+  requests: (baseUrl, isProduction) => [
     // User logs in
     {
       req: {
@@ -86,14 +86,16 @@ module.exports = {
           '<html>',
           '<head>',
           '<title>Error</title>',
-          '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
+          '<script src="/common.js" nonce="xxxx1">',
           '</script>',
-          '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx4">',
+          '<link rel="stylesheet" href="/styles.css" nonce="xxxx1">',
           '</head>',
           '<body>',
           '<div class="userfloat">',
           '<a class="loginlink" href="/login">login</a>',
-          '</div>Error: CSRF Token Not Found</body>',
+          (isProduction ?
+            '</div>Something went wrong</body>' :
+            '</div>Error: CSRF Token Not Found</body>'),
           '</html>',
         ],
         logs: {
@@ -116,9 +118,9 @@ module.exports = {
           '<html>',
           '<head>',
           '<title>Attack Review Testbed</title>',
-          '<script src="/common.js" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx5">',
+          '<script src="/common.js" nonce="xxxx2">',
           '</script>',
-          '<link rel="stylesheet" href="/styles.css" nonce="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx5">',
+          '<link rel="stylesheet" href="/styles.css" nonce="xxxx2">',
           '</head>',
           '<body>',
           '<div class="userfloat">',
