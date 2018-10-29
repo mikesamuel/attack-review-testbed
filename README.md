@@ -22,20 +22,21 @@ minutes on an underpowered Mac laptop, so it may be worth starting
 that running while you read the rest of this document.
 
 The target is a simple social-networking web application that lets
-users post updates.  ["Getting Started"](#getting-started) explains
-how to get it up and running.  ["What is a breach"](#what-is-a-breach)
-and "What is not a breach" explain what constitutes a successful
-attack.  Later, there are logistical notes on how to contribute
-breaches or report other issues.  The final section discussion
-explains how this effort fits into a bigger picture.
+users post updates.  ["Setup"](#setup) explains how to get it up and
+running.  ["What is a breach"](#what-is-a-breach) and "What is not a
+breach" explain what constitutes a successful attack.  Later, there
+are logistical notes on how to contribute breaches or report other
+issues.  The final section discussion explains how this effort fits
+into a bigger picture.
 
 The target application has an *intentionally large attack surface*.
 This application should be easy to breach if it were not for the
 security machinery under test, so if it resists breach, then the
-security machinery provides value.  Specifically, target application
-code does not filter inputs for dangerous patterns, does not
-explicitly escape outputs, composes SQL queries and shell strings from
-untrusted strings without explicit escaping.
+security machinery provides value.  Specifically, the target
+application code does not filter inputs for dangerous patterns, does
+not explicitly escape outputs, calls `require()` with a URL path to
+dispatch to HTTP request handlers, and composes SQL queries and shell
+strings from untrusted strings without explicit escaping.
 
 Thanks much for your time and attention, and happy hunting!
 
@@ -84,11 +85,7 @@ Browsing to http://localhost:8080/ will get you to the target app.
 ## File layout
 
 <details>
-  <summary>
-
-Content of subdirectories and key files.
-
-  </summary>
+  <summary>Subdirectories and key files.</summary>
 
 ### `./bin/node`
 
@@ -187,7 +184,13 @@ communicate via a UNIX domain socket.
 The target application was designed to allow probing these classes of
 vulnerability:
 
+<a name="classes-of-attack"></a>
+
 * [XSS][]: Arbitrary code execution client-side.
+  The target application disables [X-XSS-Protection][] since that
+  has a poor history of preventing determined attack.  While
+  finding X-XSS-Protection bypasses is fun, we'd rather
+  attackers focus on the target app.
 * Server-side [arbitrary code execution][ACE]
 * [CSRF][]: Sending state-changing requests that carry user
   credentials without user interaction or expressed user intent.
@@ -205,7 +208,7 @@ bounds, but please feel free to consider other attacks.
 find lib -name \*.js | xargs egrep '^// GUARANTEE'
 ```
 
-will list documented security guarantees.  Violating any of these
+will list documented security guarantees.  Compromising any of these
 guarantees by sending one or more network messages to the target
 server is a breach.
 
@@ -325,7 +328,7 @@ Submitting malicious code to dependencies of the attack-review-testbed
 is out of bounds.
 
 Generally, attackers and defenders should treat one another in a
-collegial manner.  See the [JS Foundation COC][JSC COC] if you're
+collegial manner.  See the [JS Foundation COC][JSF COC] if you're
 unsure what that means.
 
 ## Reporting and verifying a breach
@@ -333,6 +336,38 @@ unsure what that means.
 To report a suspected breach, go to
 [issues/new?template=breach.md][new breach issue]
 and fill out the fields there.
+
+Clicking that link will take you to a breach report template which
+explains what info to include.  As mentioned there, you can draft
+your report as a secret Gist which lets you save progress, and then
+just dump a link to the Gist in place of a report.
+
+If we verify a breach, we will add either add the [full breach label]
+or the [partial breach label].
+
+If we can't verify, we may ask questions.
+
+If a breach is similar in mechanism to one previously reported, we
+may mark it as a duplicate.
+
+If a breach builds on an earlier reported breach but surpasses it in
+effect or generality, then we may mark the earlier a duplicate of the
+latter, but the earlier reporter will still get full credit for their
+report.
+
+If a breach report does expose a vulnerability in a third-party module,
+then we reserve the right to edit the report to elide details while
+we coordinate with the upstream maintainers.
+
+If you want to report a breach that relies on a vulnerability in a
+third-party module, feel free to DM @mvsamuel on Twitter.  I can help
+with disclosure, or I can keep that as a record that you get credit
+as first reporter even if you're not comfortable posting details.
+
+If there's any dispute over who reported a breach first, we will
+take secret Gists' commit history into account, and may decide that
+a vulnerability was independently discovered by multiple reporters.
+
 
 ## Data collection
 
@@ -366,14 +401,57 @@ honor such requests.
 
 ## Goals
 
-TODO: Rewrite content from
-https://docs.google.com/presentation/d/1NTi36Y_PkUUFUVPx9TeOLijjguh_MFJXrENxgJDf17Y/edit#slide=id.p
+We hope to clarify the claim
 
+| It is easier to produce and deploy code on the hardened node runtime
+| that resists the [classes of attack](#classes-of-attack) than it is
+| to produce and deploy vulnerable code.
+
+We assume that developers are not mulicious but do not consistently
+work to avoid security problems.  [Insider threats][] and [supply-chain][]
+security are important issues but are out of scope of this project.
+
+We focus on classes of attack related to the integrity of messages
+that cross process or network boundaries since many of these are often
+missed by good development practices like code review and unit-tests.
+
+<details>
+  <summary>Why focus on message integrity?</summary>
+
+1.  Some security relevant code is indistinguishable from application
+    logic, e.g. access control logic.
+2.  Some is not, e.g. input parsers, and HTML templates.
+3.  Probabilistic arguments about distributions of inputs apply to
+    (1); test coverage and code review give confidence in application
+    logic correctness.
+4.  Attackers craft strings that target long chains of corner cases so
+    probablistic arguments do not apply to (2).
+5.  We can best use scarce security engineering resources best by leaving (1) to
+    application developers and focusing on (2).
+
+</details>
+
+If the target application largely resists attacks or would have with
+adjustments, then we can argue that it is easier to produce robust
+code than vulnerable code on a hardened Node.js stack.
+
+Should that argument hold we hope to work with framework authors, and
+upstream fixes so that it is not just easier to deploy robust software
+on the hardened node stack, but easy.
+
+Our end goal is that large application development teams should be
+able to confidently produce secure systems by using a hardened stack
+and granting a small group of security specialists oversight over a
+small kernel of critical configuration and source files.
 
 ## Getting Answers To Questions
 
 TODO: Slack channel or something similar
 
+
+----
+
+This is not an official Google product.
 
 [wiki]: https://github.com/mikesamuel/attack-review-testbed/wiki/
 [postinstall hook]: https://github.com/mikesamuel/attack-review-testbed/blob/master/scripts/postinstall.sh
@@ -384,3 +462,8 @@ TODO: Slack channel or something similar
 [QUI]: https://nodesecroadmap.fyi/chapter-1/threat-QUI.html
 [JSF COC]: https://js.foundation/community/code-of-conduct
 [new breach issue]: https://github.com/mikesamuel/attack-review-testbed/issues/new?template=breach.md
+[Insider threats]: https://en.wikipedia.org/wiki/Insider_threat
+[supply-chain]: https://resources.sei.cmu.edu/library/asset-view.cfm?assetid=9337
+[X-XSS-Protection]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
+[full breach label]: https://github.com/mikesamuel/attack-review-testbed/labels/full-breach
+[partial breach label]: https://github.com/mikesamuel/attack-review-testbed/labels/partial-breach
