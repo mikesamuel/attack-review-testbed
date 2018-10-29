@@ -41,10 +41,14 @@ Thanks much for your time and attention, and happy hunting!
 
 ### Setup
 
+<a name="fork"></a>
+
 You may want to fork your own copy of
 https://github.com/mikesamuel/attack-review-testbed since the review
 rules allow for making edits that a naive but well intentioned developer
 might make.  If so, `git clone` your fork instead.
+
+![Arrow To Fork Button](./doc/images/arrow-to-fork-button.png)
 
 To fetch and build locally, run
 
@@ -60,10 +64,9 @@ npm test
 
 Doing so will not run any git hooks, but does run some npm install hooks.
 If you've a healthy sense of paranoia, you can browse the
-[hook code](https://github.com/mikesamuel/attack-review-testbed/blob/master/scripts/postinstall.sh)
+[hook code][postinstall hook].
 
-If everything did not go smoothly, please try the
-[wiki](https://github.com/mikesamuel/attack-review-testbed/wiki/)
+If everything did not go smoothly, please try the [wiki][]
 which will provide troubleshooting advice and/or try the
 [support forum](#getting-answers-to-questions).
 
@@ -79,6 +82,13 @@ Browsing to http://localhost:8080/ will get you to the target app.
 
 
 ## File layout
+
+<details>
+  <summary>
+
+Content of subdirectories and key files.
+
+  </summary>
 
 ### `./bin/node`
 
@@ -97,7 +107,9 @@ starting up an HTTP server and connecting to a Postgres database.
 
 ### `package.json`
 
-
+Configuration for key pieces of security machinery lives here.
+See especially the `"mintable"` and `"sensitive_modules"` keys
+which are unpacked by `lib/framework/init-hooks.js`.
 
 ### `static/*`
 
@@ -162,22 +174,195 @@ need the bits of jsdom which fetch CSS and JavaScript.
 
 Safe-by-design APIs and wrappers for commonly misused, powerful APIs.
 
-### `pg`
+### `pg/**`
 
 Database files owned by the locally running Postgres server.
+`scripts/run-locally.js` sets up a server and a Postgres process that
+communicate via a UNIX domain socket.
+
+</details>
 
 ## What is a breach?
 
-TODO
+The target application was designed to allow probing these classes of
+vulnerability:
+
+* [XSS][]: Arbitrary code execution client-side.
+* Server-side [arbitrary code execution][ACE]
+* [CSRF][]: Sending state-changing requests that carry user
+  credentials without user interaction or expressed user intent.
+* [Shell Injection][SHI]: Structure of shell command that includes
+  crafted substrings does not match developers' intent.
+* [SQL Injection][QUI]: Structure of database query that includes
+  crafted substrings does not match developers' intent.
+
+Anything that directly falls in one of these classes of attack is in
+bounds, but please feel free to consider other attacks.
+
+-----
+
+```sh
+find lib -name \*.js | xargs egrep '^// GUARANTEE'
+```
+
+will list documented security guarantees.  Violating any of these
+guarantees by sending one or more network messages to the target
+server is a breach.
+
+----
+
+It is a goal to allow rapid development while preserving security
+properties.  Files that are not part of a small secure kernel
+should not require extensive security review.
+
+Feel free to change files that are not marked SENSITIVE (
+`find lib -name \*.js | xargs egrep '^// SENSITIVE` ) or to add new
+source files.  If you send a pull request and it passes casual review
+by `@mikesamuel` then you can use those changes to construct an
+attack.  It may be easier to manage changes if you use your own
+[fork](#fork).
+
+For example, enumerating the list of files under `static/user-uploads`
+to access uploads associated with non-public posts would be a breach,
+but not if it requires an obvious directory traversal attack involving
+`require('fs')` in naive code.
+
+**Do not** send PRs to dependencies meant to weaken their security
+posture.  If you have an attack that is only feasible when your files
+that pass casual review live under `node_modules`, feel free to put
+them there but do not, under any circumstances, attempt to compromise
+modules that might be used by applications that did not opt into
+attack review.
+
+----
+
+Instead of attacking the web application and coming up with
+a patch you may directly attack the security machinery under test:
+
+*  [module-keys](https://npmjs.com/package/module-keys) aims to
+   provide identity for modules.  Stealing a module private key
+   is a breach.
+*  [node-sec-patterns](https://npmjs.com/package/module-keys)
+   aims to protect minters for contract types.  Crafting a contract
+   value that passes a contract type's verifier in violation of the
+   configured policy is a breach.  Also, stealing a minter is a
+   breach.
+*  [sh-template-tag](https://npmjs.com/package/sh-template-tag)
+   and [safesql](https://npmjs.com/package/safesql) attempt to
+   safely comppose untrusted inputs into trusted templates.
+   Finding an untrusted input that can violate the intent of a
+   trusted template string that a non-malicious developer might
+   plausibly write and that would seem to operate correctly during
+   casual testing is a breach.
+*  [pug-plugin-trusted-types](https://npmjs.com/package/pug-plugin-trusted-types)
+   aims to do the same for HTML composition.  The same plausible
+   template standard applies.
+
+----
+
+If you have any questions about what is or is not in bounds, feel
+free to ask at the [support forum](#getting-answers-to-questions).
 
 ## What is not a breach?
 
-TODO
+It's much easier to test via `http://localhost:8080` but we assume
+that in production the target application would run in a proper
+container so all access would be HTTPS.  Attacks that involve reading
+the plain text of messages in flight are out of bounds.  Anything in
+the security machinery under test that might contribute to an HTTPS
+&rarr; HTTP downgrade attack would be in bounds.
+
+Similarly network level attacks like DNS tarpitting are out of bounds
+since those are typically addressed at the container level.
+
+We assume that in production the target application would be one
+machine in a pool, so DDOS is out of bounds.
+
+`process.bindings` is a huge bundle of poorly governed, abusable
+authority.  Efforts to address that are out of scope for this project,
+so attacks that involve abusing `process.bindings` are out of bounds,
+but if you find something cool, feel free to report it and maybe we'll
+summarize reasons why `process.bindings` needs attention.
+
+Normally, the database process would run with a different uid than the
+server process and its files would not be directly accessible to the
+server process.  Direct attacks against the database process or files
+it owns are out of bounds.  The database only runs with the same uid
+so that startup scripts don't need to setuid.
+
+Startup and build scripts assume that you have installed dependencies
+like `make`, `pg`, and `npm` on a `$PATH` that you choose.  Attacks
+that install trojans into readable directories on `$PATH` are out of
+bounds, but attacks that caused the server to spawn another server with
+an attacker-controlled `$PATH` environment variable would
+be in bounds.
+
+We assume that in production the server runs as a low-privilege user.
+Attacks that requires running the server as root or running the server
+with ambient developer privileges (like `git commit` or `npm publish`
+privileges) are out of bounds.
+
+We assume that in production the server would not have write access to
+the node runtime, so attacks that require overwriting `./bin/node` are
+out of bounds, but attacks that overwrite source files are in bounds.
+
+### Do not
+
+Attacks that involve socially engineering other attack reviewers or
+attacking the hardware of another reviewer are out of bounds.
+This includes exfiltrating log files from other attackers that
+might contain information about what they've tried.
+
+If you're submitting a sneaky pull request meant to pass casual code
+review, we understand that you may need to socially engineer your
+PR's reviewers.  Attacks against hardware used to review or approve your
+sneaky PRs are out of bounds.
+
+Attacks against github.com and its code review applications are out of
+bounds.
+
+Submitting malicious code to dependencies of the attack-review-testbed
+is out of bounds.
+
+Generally, attackers and defenders should treat one another in a
+collegial manner.  See the [JS Foundation COC][JSC COC] if you're
+unsure what that means.
 
 ## Reporting and verifying a breach
 
-TODO: Just use the project issue tracker.
-TODO: Provide a report template.
+To report a suspected breach, go to
+[issues/new?template=breach.md][new breach issue]
+and fill out the fields there.
+
+## Data collection
+
+When you run your server using `scripts/run-locally.js` it appends to a
+logfile.  The information it logs is at most:
+
+*  The content of every HTTP request to the target server which includes
+   HTTP response bodies with uploads.
+*  The content of every HTTP response issued by the target server.
+*  Timestamps
+*  The hash of the most recent git commit so we can try to correlate log entries
+   with sneaky PRs.
+
+None of this logged information is collected from your machine.
+
+We will request that you send us these logs so that we can try and
+replay attacks against a target server with security machinery
+selectively disabled to try to quantify the attack surface that each
+mechanism covers.
+
+We will try to not to collect `$USERNAME`, `$HOME`, and other information
+that might identify a real person, and to sanitize any snippets of logs used
+in any publication.
+
+Submitting these logs is entirely voluntary and you may edit them
+before sending.  If you realize there's something in there you
+included unintentionally we will respect all requests to delete or
+redact logs received prior to publication.  We will provide a hash of
+any log you submit; including that hash will make it easier for us to
+honor such requests.
 
 ## Goals
 
@@ -187,4 +372,15 @@ https://docs.google.com/presentation/d/1NTi36Y_PkUUFUVPx9TeOLijjguh_MFJXrENxgJDf
 
 ## Getting Answers To Questions
 
-TODO
+TODO: Slack channel or something similar
+
+
+[wiki]: https://github.com/mikesamuel/attack-review-testbed/wiki/
+[postinstall hook]: https://github.com/mikesamuel/attack-review-testbed/blob/master/scripts/postinstall.sh
+[XSS]: https://www.owasp.org/index.php/Cross-site_Scripting_(XSS)#Description
+[ACE]: https://nodesecroadmap.fyi/chapter-1/threat-RCE.html
+[CSRF]: https://www.owasp.org/index.php/Cross-Site_Request_Forgery_(CSRF)#Description
+[SHI]: https://nodesecroadmap.fyi/chapter-1/threat-SHP.html
+[QUI]: https://nodesecroadmap.fyi/chapter-1/threat-QUI.html
+[JSF COC]: https://js.foundation/community/code-of-conduct
+[new breach issue]: https://github.com/mikesamuel/attack-review-testbed/issues/new?template=breach.md
