@@ -51,6 +51,29 @@
         "lib/safe/child_process.js"
       ]
     },
+    "fs": {
+      "ids": [
+        "clean-css/lib/reader/read-sources.js",
+        "clean-css/lib/reader/apply-source-maps.js",
+        "clean-css/lib/reader/load-original-sources.js",
+        "destroy/index.js",
+        "etag/index.js",
+        "fd-slicer/index.js",
+        "jstransformer/index.js",
+        "mime/mime.js",
+        "multiparty/index.js",
+        "resolve/lib/async.js",
+        "resolve/lib/node-modules-paths.js",
+        "resolve/lib/sync.js",
+        "pgpass/lib/index.js",
+        "pn/fs.js",
+        "pug-runtime/build.js",
+        "pug/lib/index.js",
+        "pug-load/index.js",
+        "send/index.js",
+        "uglify-js/tools/node.js"
+      ]
+    },
     "http": [
       "lib/server.js"
     ],
