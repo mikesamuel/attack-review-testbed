@@ -1,10 +1,40 @@
 # Hardened Node Attack Review
 
 <!-- TOC -->
+*  [Background](#hdr-background)
+   *  [Setup](#hdr-setup)
+*  [File layout](#hdr-file-layout)
+   *  [`./bin/node`](#hdr-bin-node-)
+   *  [`main.js`](#hdr-main-js-)
+   *  [`package.json`](#hdr-package-json-)
+   *  [`static/*`](#hdr-static-)
+   *  [`static/user-uploads/*`](#hdr-static-user-uploads-)
+   *  [`lib/**/*.js`](#hdr-lib-js-)
+   *  [`lib/server.js`](#hdr-lib-server-js-)
+   *  [`lib/handler/**/*.{js,pug}`](#hdr-lib-handler-js-pug-)
+   *  [`lib/framework/*.js`](#hdr-lib-framework-js-)
+   *  [`lib/framework/lockdown.js`](#hdr-lib-framework-lockdown-js-)
+   *  [`lib/code-loading-function-proxy.js`](#hdr-lib-code-loading-function-proxy-js-)
+   *  [`lib/framework/module-hooks/*.js`](#hdr-lib-framework-module-hooks-js-)
+   *  [`lib/framework/module-stubs/*.js`](#hdr-lib-framework-module-stubs-js-)
+   *  [`lib/safe/*.js`](#hdr-lib-safe-js-)
+   *  [`pg/**`](#hdr-pg-)
+*  [What is a breach?](#hdr-what-is-a-breach-)
+   *  [XSS](#hdr-xss)
+   *  [Documented Security Guarantees](#hdr-documented-security-guarantees)
+   *  [Security under maintenance](#hdr-security-under-maintenance)
+   *  [Directly attacking key libraries](#hdr-directly-attacking-key-libraries)
+   *  [What else is a breach?](#hdr-what-else-is-a-breach-)
+*  [What is not a breach?](#hdr-what-is-not-a-breach-)
+   *  [Do not](#hdr-do-not)
+*  [Reporting and verifying a breach](#hdr-reporting-and-verifying-a-breach)
+*  [Data collection](#hdr-data-collection)
+*  [Goals](#hdr-goals)
+*  [Getting Answers To Questions](#hdr-getting-answers-to-questions)
 
 <!-- /TOC -->
 
-## Background
+## Background                           <a name="hdr-background"></a>
 
 Thanks for your interest in attacking the hardened Node demo app.
 Hopefully seeing what security machinery resists concerted attempt by
@@ -40,7 +70,7 @@ strings from untrusted strings without explicit escaping.
 
 Thanks much for your time and attention, and happy hunting!
 
-### Setup
+### Setup                               <a name="hdr-setup"></a>
 
 <a name="fork"></a>
 
@@ -82,19 +112,19 @@ Database seeded with test data
 Browsing to http://localhost:8080/ will get you to the target app.
 
 
-## File layout
+## File layout                          <a name="hdr-file-layout"></a>
 
 <details>
   <summary>Subdirectories and key files.</summary>
 
-### `./bin/node`
+### `./bin/node`                        <a name="hdr-bin-node-"></a>
 
 A patched node runtime that provides hooks used by the security
 machinery that I hope you will attack.
 
 You can find the patch at `./bin/node.d/node.patch`.
 
-### `main.js`
+### `main.js`                           <a name="hdr-main-js-"></a>
 
 The application main file responsible for specifying module loader
 hooks and other node flags, parsing *argv* and the environment,
@@ -102,47 +132,47 @@ starting up an HTTP server and connecting to a Postgres database.
 
 `./main.js --help` will dump usage.
 
-### `package.json`
+### `package.json`                      <a name="hdr-package-json-"></a>
 
 Configuration for key pieces of security machinery lives here.
 See especially the `"mintable"` and `"sensitive_modules"` keys
 which are unpacked by `lib/framework/init-hooks.js`.
 
-### `static/*`
+### `static/*`                          <a name="hdr-static-"></a>
 
 Client-side JavaScript, styles, and other static files served
 by the target application.
 
-### `static/user-uploads/*`
+### `static/user-uploads/*`             <a name="hdr-static-user-uploads-"></a>
 
 Files uploaded by users via the `/post` form.
 
-### `lib/**/*.js`
+### `lib/**/*.js`                       <a name="hdr-lib-js-"></a>
 
 Server-side JavaScript that is meant to run in production.
 Test only code is under `test/`.
 
-### `lib/server.js`
+### `lib/server.js`                     <a name="hdr-lib-server-js-"></a>
 
 Responsible for starting up the server and dispatching requests
 to code under `lib/handler`.
 
-### `lib/handler/**/*.{js,pug}`
+### `lib/handler/**/*.{js,pug}`         <a name="hdr-lib-handler-js-pug-"></a>
 
 `lib/server.js` will delegate handling for a URL path like `/post`
 to `lib/handler/post.js` which, by convention, renders HTML using
 `lib/handler/post.pug`.
 
-### `lib/framework/*.js`
+### `lib/framework/*.js`                <a name="hdr-lib-framework-js-"></a>
 
 Security machinery.
 
-### `lib/framework/lockdown.js`
+### `lib/framework/lockdown.js`         <a name="hdr-lib-framework-lockdown-js-"></a>
 
 Attempts to make user-code less confusable by preventing mutation
 of builtins.  `myFn.call(...args)` should reliably call `myFn`.
 
-### `lib/code-loading-function-proxy.js`
+### `lib/code-loading-function-proxy.js`   <a name="hdr-lib-code-loading-function-proxy-js-"></a>
 
 Allows `new Function(...)` to load code for legacy modules even
 when the patched `node` runtime is invoked with
@@ -150,15 +180,15 @@ when the patched `node` runtime is invoked with
 
 Ideally, `new Function` in well understood core modules should
 continue to work, but implicit access to `new Function` should not.
-Specifically, `({})[x][x](y)` should not load code when an attacker
-causes `x = 'constructor'`.
+Specifically, `({})[x][x](y)` should not load code
+when an attacker causes `x = 'constructor'`.
 
-### `lib/framework/module-hooks/*.js`
+### `lib/framework/module-hooks/*.js`   <a name="hdr-lib-framework-module-hooks-js-"></a>
 
 Hooks that run on `require` that check resource integrity and isolate
 most user code from sensitive modules like `child_process`.
 
-### `lib/framework/module-stubs/*.js`
+### `lib/framework/module-stubs/*.js`   <a name="hdr-lib-framework-module-stubs-js-"></a>
 
 Stub out legacy modules that the target application should not need
 but which load due to dependencies.
@@ -167,11 +197,11 @@ For example, the target application uses DOMPurify to sanitize HTML
 which loads *jsdom*, a server-side *HTMLDocument* emulator.  We do not
 need the bits of jsdom which fetch CSS and JavaScript.
 
-### `lib/safe/*.js`
+### `lib/safe/*.js`                     <a name="hdr-lib-safe-js-"></a>
 
 Safe-by-design APIs and wrappers for commonly misused, powerful APIs.
 
-### `pg/**`
+### `pg/**`                             <a name="hdr-pg-"></a>
 
 Database files owned by the locally running Postgres server.
 `scripts/run-locally.js` sets up a server and a Postgres process that
@@ -179,7 +209,7 @@ communicate via a UNIX domain socket.
 
 </details>
 
-## What is a breach?
+## What is a breach?                    <a name="hdr-what-is-a-breach-"></a>
 
 The target application was designed to allow probing these classes of
 vulnerability:
@@ -187,10 +217,6 @@ vulnerability:
 <a name="classes-of-attack"></a>
 
 * [XSS][]: Arbitrary code execution client-side.
-  The target application disables [X-XSS-Protection][] since that
-  has a poor history of preventing determined attack.  While
-  finding X-XSS-Protection bypasses is fun, we'd rather
-  attackers focus on the target app.
 * Server-side [arbitrary code execution][ACE]
 * [CSRF][]: Sending state-changing requests that carry user
   credentials without user interaction or expressed user intent.
@@ -202,7 +228,18 @@ vulnerability:
 Anything that directly falls in one of these classes of attack is in
 bounds, but please feel free to consider other attacks.
 
------
+### XSS                                 <a name="hdr-xss"></a>
+
+If the only thing preventing an XSS is the Content-Security-Policy
+header, then you have a breach.  We treate CSP as a useful
+defense-in-depth but it is a goal not to rely on it.
+
+The target application disables [X-XSS-Protection][] since that
+has a poor history of preventing determined attack.  While
+finding X-XSS-Protection bypasses is fun, we'd rather
+attackers focus on the target app.
+
+### Documented Security Guarantees      <a name="hdr-documented-security-guarantees"></a>
 
 ```sh
 find lib -name \*.js | xargs egrep '^// GUARANTEE'
@@ -212,7 +249,7 @@ will list documented security guarantees.  Compromising any of these
 guarantees by sending one or more network messages to the target
 server is a breach.
 
-----
+### Security under maintenance          <a name="hdr-security-under-maintenance"></a>
 
 It is a goal to allow rapid development while preserving security
 properties.  Files that are not part of a small secure kernel
@@ -237,7 +274,7 @@ them there but do not, under any circumstances, attempt to compromise
 modules that might be used by applications that did not opt into
 attack review.
 
-----
+### Directly attacking key libraries    <a name="hdr-directly-attacking-key-libraries"></a>
 
 Instead of attacking the web application and coming up with
 a patch you may directly attack the security machinery under test:
@@ -261,12 +298,12 @@ a patch you may directly attack the security machinery under test:
    aims to do the same for HTML composition.  The same plausible
    template standard applies.
 
-----
+### What else is a breach?              <a name="hdr-what-else-is-a-breach-"></a>
 
 If you have any questions about what is or is not in bounds, feel
 free to ask at the [support forum](#getting-answers-to-questions).
 
-## What is not a breach?
+## What is not a breach?                <a name="hdr-what-is-not-a-breach-"></a>
 
 It's much easier to test via `http://localhost:8080` but we assume
 that in production the target application would run in a proper
@@ -309,7 +346,7 @@ We assume that in production the server would not have write access to
 the node runtime, so attacks that require overwriting `./bin/node` are
 out of bounds, but attacks that overwrite source files are in bounds.
 
-### Do not
+### Do not                              <a name="hdr-do-not"></a>
 
 Attacks that involve socially engineering other attack reviewers or
 attacking the hardware of another reviewer are out of bounds.
@@ -331,7 +368,7 @@ Generally, attackers and defenders should treat one another in a
 collegial manner.  See the [JS Foundation COC][JSF COC] if you're
 unsure what that means.
 
-## Reporting and verifying a breach
+## Reporting and verifying a breach     <a name="hdr-reporting-and-verifying-a-breach"></a>
 
 To report a suspected breach, go to
 [issues/new?template=breach.md][new breach issue]
@@ -369,7 +406,7 @@ take secret Gists' commit history into account, and may decide that
 a vulnerability was independently discovered by multiple reporters.
 
 
-## Data collection
+## Data collection                      <a name="hdr-data-collection"></a>
 
 When you run your server using `scripts/run-locally.js` it appends to a
 logfile.  The information it logs is at most:
@@ -399,7 +436,7 @@ redact logs received prior to publication.  We will provide a hash of
 any log you submit; including that hash will make it easier for us to
 honor such requests.
 
-## Goals
+## Goals                                <a name="hdr-goals"></a>
 
 We hope to clarify the claim
 
@@ -444,7 +481,7 @@ able to confidently produce secure systems by using a hardened stack
 and granting a small group of security specialists oversight over a
 small kernel of critical configuration and source files.
 
-## Getting Answers To Questions
+## Getting Answers To Questions         <a name="hdr-getting-answers-to-questions"></a>
 
 Post on the *\# attack-review* channel at
 https://nodejs-security-wg.slack.com/ if you're having trouble.
