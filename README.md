@@ -262,6 +262,9 @@ by `@mikesamuel` then you can use those changes to construct an
 attack.  It may be easier to manage changes if you use your own
 [fork](#fork).
 
+If your PR includes files marked SENSITIVE, then those files will
+receive a higher level of scrutiny.
+
 For example, enumerating the list of files under `static/user-uploads`
 to access uploads associated with non-public posts would be a breach,
 but not if it requires an obvious directory traversal attack involving
