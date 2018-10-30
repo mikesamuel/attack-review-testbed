@@ -22,7 +22,6 @@
 const { URL } = require('url');
 
 module.exports = {
-  name: 'GET /hello-world.html OK',
   requests: (baseUrl) => [
     {
       req: {

@@ -27,7 +27,6 @@ const { URL } = require('url');
 // 3. Redirect to a page and notice that the login link now has a username.
 
 module.exports = {
-  name: 'GET /login 200',
   requests: (baseUrl) => [
     {
       req: {

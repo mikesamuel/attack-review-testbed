@@ -40,7 +40,6 @@ const indexRelUrl = `/?now=${ now }&offset=4`;
 
 
 module.exports = {
-  name: 'GET /post, POST /post, POST /post, GET /',
   requests: (baseUrl) => {
     // Store map with randomly generated filenames so we can test stability over
     // multiple POSTS.

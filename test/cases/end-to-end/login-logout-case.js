@@ -22,7 +22,6 @@
 const { URL } = require('url');
 
 module.exports = {
-  name: 'POST /login, GET /echo, POST /logout, GET /echo OK',
   requests: (baseUrl) => [
     {
       req: {

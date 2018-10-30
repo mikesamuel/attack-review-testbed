@@ -25,7 +25,6 @@ const now = Number(new Date('2018-10-12 12:00:00Z'));
 const indexRelUrl = `/?count=1&now=${ now }`;
 
 module.exports = {
-  name: 'GET /account, POST /login, POST /account, GET /, GET /account',
   requests: (baseUrl) => [
     {
       req: {

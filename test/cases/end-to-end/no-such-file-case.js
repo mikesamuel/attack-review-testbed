@@ -22,7 +22,6 @@
 const { URL } = require('url');
 
 module.exports = {
-  name: 'GET /no-such-file 404',
   requests: (baseUrl) => [
     {
       req: {

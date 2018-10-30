@@ -25,7 +25,6 @@ const now = Number(new Date('2018-10-12 12:00:00Z'));
 const homePagePath = `/?now=${ now }`;
 
 module.exports = {
-  name: 'GET / OK',
   requests: (baseUrl) => [
     {
       req: {
