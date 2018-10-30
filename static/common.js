@@ -22,16 +22,16 @@ document.addEventListener('DOMContentLoaded', function onReady() {
 
 // Transmit client-side errors to the server logs.
 void (() => {
-  const originalError = console.error;
+  var originalError = console.error;
   // eslint-disable-next-line id-blacklist
   console.error = function error() {
+    var args = Array.prototype.slice.call(arguments);
     // Fire and forget error to server.
-    const message = new window.XMLHttpRequest();
-    const url = document.origin + '/client-error';
+    var message = new window.XMLHttpRequest();
+    var url = (window.origin || document.origin) + '/client-error';
     message.open('POST', url, true);
     message.setRequestHeader('Content-type', 'text/plain;charset=UTF-8');
-    message.send(arguments.join(' '));
-
-    return originalError.apply(console, arguments);
+    message.send(args.join(' '));
+    return originalError.apply(console, args);
   };
 })();
