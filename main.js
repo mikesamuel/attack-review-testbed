@@ -25,6 +25,8 @@
  * before any monkeypatching by the majority of unprivileged modules.
  */
 
+// SENSITIVE - Shebang enables early loaded trusted hooks, and code enables security machinery.
+
 const path = require('path');
 const process = require('process');
 
