@@ -453,9 +453,9 @@ We'll try to update the wiki in response to common questions.
 
 If you need a private channel:
 
-| Contact     | Availability   | DMs               |
-| ----------- | -------------- | ----------------- |
-| Mike Samuel | US EST (GMT+5) | twitter/@mvsamuel |
+| Contact     | Availability   | DMs                  |
+| ----------- | -------------- | -------------------- |
+| Mike Samuel | US EST (GMT+5) | [twitter/mvsamuel][] |
 
 ----
 
@@ -475,3 +475,4 @@ This is not an official Google product.
 [X-XSS-Protection]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
 [full breach label]: https://github.com/mikesamuel/attack-review-testbed/labels/full-breach
 [partial breach label]: https://github.com/mikesamuel/attack-review-testbed/labels/partial-breach
+[twitter/mvsamuel]: https://twitter.com/messages/compose?recipient_id=80772555
