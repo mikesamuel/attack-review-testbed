@@ -125,7 +125,7 @@ function externalProcessTest(testFun) {
       if (ready) {
         shutdown();
       } else {
-        shutdown(new Error('Server did not start serving'));
+        shutdown(new Error(`Server did not start serving\n${ JSON.stringify(logs(), null, 2) }`));
       }
     });
     serverProcess.on('error', (exc) => done(exc || new Error('spawn failed')));

@@ -104,6 +104,9 @@ function spinUpDatabase(onceDatabaseStarted) {
   let stdoutFd = null;
   let stderrFd = null;
 
+  process.on('exit', () => process.emit('teardown'));
+  process.on('SIGINT', () => process.emit('teardown'));
+
   function teardown() {
     if (dbProcess !== null) {
       dbProcess.kill('SIGINT');
@@ -134,7 +137,7 @@ function spinUpDatabase(onceDatabaseStarted) {
       pgLogsDir = null;
     }
   }
-  process.on('beforeExit', teardown);
+  process.on('teardown', teardown);
 
   function onceSocketAllocated({ pgSockFile, pgPort }) {
     pgDataDir = mkdirp(path.join(pgDir, pgPort, 'data'));
@@ -231,7 +234,7 @@ if (require.main === module) {
               PGDATABASE: 'postgres',
             }),
         });
-      process.on('beforeExit', () => serverProcess.kill());
+      process.on('teardown', () => serverProcess.kill());
     });
 }
 
