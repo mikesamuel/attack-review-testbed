@@ -29,6 +29,7 @@ void (() => {
     const message = new window.XMLHttpRequest();
     const url = document.origin + '/client-error';
     message.open('POST', url, true);
+    message.setRequestHeader('Content-type', 'text/plain;charset=UTF-8');
     message.send(arguments.join(' '));
 
     return originalError.apply(console, arguments);
