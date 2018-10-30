@@ -440,9 +440,9 @@ honor such requests.
 
 We hope to clarify the claim
 
-| It is easier to produce and deploy code on the hardened node runtime
-| that resists the [classes of attack](#classes-of-attack) than it is
-| to produce and deploy vulnerable code.
+> It is easier to produce and deploy code on the hardened node runtime
+> that resists the [classes of attack](#classes-of-attack) than it is
+> to produce and deploy vulnerable code.
 
 We assume that developers are not mulicious but do not consistently
 work to avoid security problems.  [Insider threats][] and [supply-chain][]
