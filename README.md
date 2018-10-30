@@ -48,7 +48,7 @@ does and does not constitute a successful breach.
 on a machine you control.
 The [`npm install` invocation](#npminstalling) under **Setup** below
 builds a patched `node` runtime from source, which takes over 11
-minutes on an underpowered Mac laptop, so it may be worth starting
+minutes on an under-powered Mac laptop, so it may be worth starting
 that running while you read the rest of this document.
 
 The target is a simple social-networking web application that lets
@@ -231,7 +231,7 @@ bounds, but please feel free to consider other attacks.
 ### XSS                                 <a name="hdr-xss"></a>
 
 If the only thing preventing an XSS is the Content-Security-Policy
-header, then you have a breach.  We treate CSP as a useful
+header, then you have a breach.  We treat CSP as a useful
 defense-in-depth but it is a goal not to rely on it.
 
 The target application disables [X-XSS-Protection][] since that
@@ -289,7 +289,7 @@ a patch you may directly attack the security machinery under test:
    breach.
 *  [sh-template-tag](https://npmjs.com/package/sh-template-tag)
    and [safesql](https://npmjs.com/package/safesql) attempt to
-   safely comppose untrusted inputs into trusted templates.
+   safely compose untrusted inputs into trusted templates.
    Finding an untrusted input that can violate the intent of a
    trusted template string that a non-malicious developer might
    plausibly write and that would seem to operate correctly during
@@ -332,7 +332,7 @@ so that startup scripts don't need to setuid.
 
 Startup and build scripts assume that you have installed dependencies
 like `make`, `pg`, and `npm` on a `$PATH` that you choose.  Attacks
-that install trojans into readable directories on `$PATH` are out of
+that install Trojans into readable directories on `$PATH` are out of
 bounds, but attacks that caused the server to spawn another server with
 an attacker-controlled `$PATH` environment variable would
 be in bounds.
@@ -358,14 +358,14 @@ review, we understand that you may need to socially engineer your
 PR's reviewers.  Attacks against hardware used to review or approve your
 sneaky PRs are out of bounds.
 
-Attacks against github.com and its code review applications are out of
+Attacks against GitHub and its code review applications are out of
 bounds.
 
 Submitting malicious code to dependencies of the attack-review-testbed
 is out of bounds.
 
-Generally, attackers and defenders should treat one another in a
-collegial manner.  See the [JS Foundation COC][JSF COC] if you're
+Attackers and defenders should treat one another in a collegial
+manner.  See the [JS Foundation code of conduct][JSF COC] if you're
 unsure what that means.
 
 ## Reporting and verifying a breach     <a name="hdr-reporting-and-verifying-a-breach"></a>
@@ -409,7 +409,7 @@ a vulnerability was independently discovered by multiple reporters.
 ## Data collection                      <a name="hdr-data-collection"></a>
 
 When you run your server using `scripts/run-locally.js` it appends to a
-logfile.  The information it logs is at most:
+log file.  The information it logs is at most:
 
 *  The content of every HTTP request to the target server which includes
    HTTP response bodies with uploads.
@@ -444,7 +444,7 @@ We hope to clarify the claim
 > that resists the [classes of attack](#classes-of-attack) than it is
 > to produce and deploy vulnerable code.
 
-We assume that developers are not mulicious but do not consistently
+We assume that developers are not malicious but do not consistently
 work to avoid security problems.  [Insider threats][] and [supply-chain][]
 security are important issues but are out of scope of this project.
 
@@ -462,7 +462,7 @@ missed by good development practices like code review and unit-tests.
     (1); test coverage and code review give confidence in application
     logic correctness.
 4.  Attackers craft strings that target long chains of corner cases so
-    probablistic arguments do not apply to (2).
+    probabilistic arguments do not apply to (2).
 5.  We can best use scarce security engineering resources best by leaving (1) to
     application developers and focusing on (2).
 
