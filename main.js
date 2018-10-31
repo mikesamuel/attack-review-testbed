@@ -39,6 +39,14 @@ const safepg = require('./lib/safe/pg.js');
 const { initializeTablesWithTestData } = require('./lib/db-tables');
 
 if (isMain) {
+  // Fail fast if run via `node main.js` instead of as a script with the flags from #! above.
+  let evalWorks = true;
+  try {
+    eval(String(Math.random())); // eslint-disable-line no-eval
+  } catch (evalFailed) {
+    evalWorks = false;
+  }
+
   const argv = [ ...process.argv ];
   // './bin/node'
   argv.shift();
@@ -55,7 +63,7 @@ if (isMain) {
   const defaultPort = 8080;
   const defaultRootDir = path.resolve(__dirname);
 
-  if (argv[0] === '--help') {
+  if (evalWorks || argv[0] === '--help') {
     // eslint-disable-next-line no-console
     console.log(`Usage: ${ __filename } [--noinitdb] [<hostName> [<port> [<rootdir>]]]
 
