@@ -29,7 +29,7 @@ if [[ "true" != "$TRAVIS" ]]; then
 
         (
             pushd "$NODE_BUILD_PARENT"
-            git clone git@github.com:nodejs/node.git node
+            git clone https://github.com/nodejs/node.git node
             pushd "$NODE_BUILD_DIR"
             git reset --hard edb03cb65d51e336713d6af1134a7394c0776635
             patch -p1 < "$NODE_BUILD_PARENT/node.patch"
