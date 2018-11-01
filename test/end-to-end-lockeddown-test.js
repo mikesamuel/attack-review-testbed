@@ -41,6 +41,15 @@ const { setTimeout } = global;
 
 const quiet = true;
 
+const shutdowns = [];
+process.on('SIGINT', () => {
+  const failure = new Error('interrupted');
+  for (const shutdown of shutdowns) {
+    shutdown(failure);
+  }
+  shutdowns.length = 0;
+});
+
 function externalProcessTest(testFun) {
   return function test(done) {
     // Each process has to spin up its own database, so this takes a bit longer
@@ -57,10 +66,14 @@ function externalProcessTest(testFun) {
     }
 
     const root = path.resolve(path.join(__dirname, '..'));
-    const serverProcess = childProcess.spawn(
+    let serverProcess = childProcess.spawn(
       path.join(root, 'scripts', 'run-locally.js'),
-      // Ask server to pick a non-conflicting port.mom
-      [ 'localhost', '0' ],
+      [
+        // Do not append to the attacker's logfile.
+        '--log', '/dev/null', // eslint-disable-next-line array-element-newline
+        /* Ask server to pick a non-conflicting port. */
+        'localhost', '0',
+      ],
       {
         cwd: root,
         env: Object.assign(
@@ -78,18 +91,21 @@ function externalProcessTest(testFun) {
 
     let calledDone = false;
     function shutdown(exc) {
-      try {
-        serverProcess.stdout.destroy();
-        serverProcess.stderr.destroy();
-        if (!serverProcess.killed) {
-          logTestEvent(`Ending process ${ serverProcess.pid }`);
-          serverProcess.kill('SIGINT');
-        }
-      } catch (shutdownFailure) {
-        exc = exc || shutdownFailure || new Error('shutdown failed');
-        if (exc !== shutdownFailure) {
-          // eslint-disable-next-line no-console
-          console.error(shutdownFailure);
+      if (serverProcess) {
+        try {
+          serverProcess.stdout.destroy();
+          serverProcess.stderr.destroy();
+          if (!serverProcess.killed) {
+            logTestEvent(`Ending process ${ serverProcess.pid }`);
+            serverProcess.kill('SIGINT');
+          }
+          serverProcess = null;
+        } catch (shutdownFailure) {
+          exc = exc || shutdownFailure || new Error('shutdown failed');
+          if (exc !== shutdownFailure) {
+            // eslint-disable-next-line no-console
+            console.error(shutdownFailure);
+          }
         }
       }
 
@@ -107,6 +123,7 @@ function externalProcessTest(testFun) {
         console.error(exc);
       }
     }
+    shutdowns.push(shutdown);
 
     let stdout = '';
     let stderr = '';

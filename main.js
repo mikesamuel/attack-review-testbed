@@ -27,6 +27,8 @@
 
 // SENSITIVE - Shebang enables early loaded trusted hooks, and code enables security machinery.
 
+const { execSync } = require('child_process');
+const fs = require('fs'); // eslint-disable-line id-length
 const path = require('path');
 const process = require('process');
 
@@ -37,6 +39,14 @@ require('./lib/framework/bootstrap-secure.js')(path.resolve(__dirname), isMain);
 const { start } = require('./lib/server.js');
 const safepg = require('./lib/safe/pg.js');
 const { initializeTablesWithTestData } = require('./lib/db-tables');
+const { flock } = require('fs-ext');
+
+const processInfo = {
+  pid: process.pid,
+  argv: [ ...process.argv ],
+  start: Date.now(),
+  hash: execSync('git rev-parse HEAD', { encoding: 'utf8' }).replace(/\s+$/, ''),
+};
 
 if (isMain) {
   // Fail fast if run via `node main.js` instead of as a script with the flags from #! above.
@@ -53,10 +63,26 @@ if (isMain) {
   // __filename
   argv.shift();
 
+  let requestLogFile = './request.log';
+
   let initDb = true;
-  if (argv[0] === '--noinitdb') {
-    argv.shift();
-    initDb = false;
+  flagloop:
+  for (;;) {
+    switch (argv[0]) {
+      case '--noinitdb':
+        argv.shift();
+        initDb = false;
+        break;
+      case '--log':
+        argv.shift();
+        requestLogFile = argv.shift();
+        break;
+      case '--':
+        argv.shift();
+        break flagloop;
+      default:
+        break flagloop;
+    }
   }
 
   const defaultHostName = 'localhost';
@@ -75,9 +101,31 @@ if (isMain) {
   } else {
     const [ hostName = defaultHostName, port = defaultPort, rootDir = defaultRootDir ] = argv;
     const database = new safepg.Pool();
+    // eslint-disable-next-line no-magic-numbers, no-sync
+    const requestLogFileDescriptor = requestLogFile === '-' ? 1 : fs.openSync(requestLogFile, 'a', 0o600);
+
+    // Log a request so we can replay attacks.
+    // This appends to a log file that hopefully will allow us to playback successful and
+    // unsuccessful attacks against variant servers.
+    const writeToPlaybackLog = (message) => { // eslint-disable-line func-style
+      message = Object.assign(message, { processInfo });
+      const octets = Buffer.from(`${ JSON.stringify(message, null, 1) },\n`, 'utf8');
+      // 2 means lock exclusively.
+      // We lock in case multiple server processes interleave writes to the same channel.
+      flock(requestLogFileDescriptor, 2, () => {
+        fs.write(requestLogFileDescriptor, octets, (exc) => {
+          // 8 means unlock
+          // eslint-disable-next-line no-magic-numbers
+          flock(requestLogFileDescriptor, 8);
+          if (exc) {
+            console.error(exc); // eslint-disable-line no-console
+          }
+        });
+      });
+    };
 
     const { stop } = start(
-      { hostName, port, rootDir, database },
+      { hostName, port, rootDir, database, writeToPlaybackLog },
       (exc, actualPort) => {
         if (exc) {
           process.exitCode = 1;
@@ -93,6 +141,10 @@ if (isMain) {
     // eslint-disable-next-line no-inner-declarations
     function tearDown() {
       stop();
+      if (requestLogFileDescriptor) {
+        // eslint-disable-next-line no-sync
+        fs.closeSync(requestLogFileDescriptor);
+      }
       try {
         database.end();
       } catch (exc) {

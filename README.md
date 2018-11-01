@@ -300,6 +300,9 @@ a patch you may directly attack the security machinery under test:
 *  [pug-plugin-trusted-types](https://npmjs.com/package/pug-plugin-trusted-types)
    aims to do the same for HTML composition.  The same plausible
    template standard applies.
+*  [web-contract-types](https://npmjs.com/package/web-contract-types)
+   provides contract types for HTML, URLs and other webapp languages.
+   It also has some APIs that mint contract values.
 
 ### What else is a breach?              <a name="hdr-what-else-is-a-breach-"></a>
 
@@ -336,9 +339,9 @@ so that startup scripts don't need to setuid.
 Startup and build scripts assume that you have installed dependencies
 like `make`, `pg`, and `npm` on a `$PATH` that you choose.  Attacks
 that install Trojans into readable directories on `$PATH` are out of
-bounds, but attacks that caused the server to spawn another server with
-an attacker-controlled `$PATH` environment variable would
-be in bounds.
+bounds, but attacks that caused the server to spawn another server
+with an attacker-controlled `$PATH` environment variable would be in
+bounds.
 
 We assume that in production the server runs as a low-privilege user.
 Attacks that requires running the server as root or running the server
@@ -348,6 +351,10 @@ privileges) are out of bounds.
 We assume that in production the server would not have write access to
 the node runtime, so attacks that require overwriting `./bin/node` are
 out of bounds, but attacks that overwrite source files are in bounds.
+
+We [log requests](#hdr-data-collection) including nonces.  This log
+would not be part of any production system, so attacks that involve
+stealing secrets from it are out of bounds.
 
 ### Do not                              <a name="hdr-do-not"></a>
 

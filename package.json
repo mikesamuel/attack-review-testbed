@@ -48,10 +48,12 @@
     "child_process": {
       "advice": "Use safe/child_process.js instead.",
       "ids": [
+        "main.js",
         "lib/safe/child_process.js"
       ]
     },
     "fs": {
+      "advice": "The server has write permissions to a directory that contains static files.  If you need file-system access, please contact security-oncall@.  TODO: safe/fs.js will provide non-mutating file-system access",
       "ids": [
         "clean-css/lib/reader/read-sources.js",
         "clean-css/lib/reader/apply-source-maps.js",
@@ -59,7 +61,10 @@
         "destroy/index.js",
         "etag/index.js",
         "fd-slicer/index.js",
+        "fs-ext/fs-ext.js",
         "jstransformer/index.js",
+        "lib/server.js",
+        "main.js",
         "mime/mime.js",
         "multiparty/index.js",
         "resolve/lib/async.js",
@@ -130,6 +135,7 @@
     "cookie": "^0.3.1",
     "csrf-crypto": "^1.0.0",
     "dompurify": "^1.0.8",
+    "fs-ext": "^1.2.1",
     "jsdom": "^12.2.0",
     "mime-types": "^2.1.20",
     "multiparty": "^4.2.1",
