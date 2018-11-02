@@ -1,3 +1,6 @@
+//- SENSITIVE - Trusted not to leak personally identifying information
+//-             relating to the current user.
+
 mixin title()
   | Edit Account
 
@@ -27,12 +30,12 @@ mixin body()
         td
           label(for= "realName") Real Name
         td
-          input(name="realName" value=unbox(currentAccount.realName))
+          input(name="realName" value=require.keys.unbox(currentAccount.realName, () => true))
       tr
         td
           label(for= "email") Email
         td
-          input(name="email" value=unbox(currentAccount.email))
+          input(name="email" value=require.keys.unbox(currentAccount.email, () => true))
     input(name="cont" type="hidden" value=cont)
   button(form="account" type="submit") Submit
   |
