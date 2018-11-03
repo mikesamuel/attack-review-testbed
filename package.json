@@ -128,6 +128,18 @@
       "ids": [
         "lib/safe/pg.js"
       ]
+    },
+    "vm": {
+      "mode": "enforce",
+      "ids": [
+        "uglify-js/tools/node.js",
+        "core-js/library/modules/_global.js",
+        "depd/index.js",
+        "pug-plugin-trusted-types/index.js",
+        "jsdom/lib/api.js",
+        "lodash.sortby/index.js",
+        "nwsapi/src/nwsapi.js"
+      ]
     }
   },
   "dependencies": {
