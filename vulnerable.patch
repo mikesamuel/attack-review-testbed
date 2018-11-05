@@ -1,0 +1,644 @@
+--- lib/db-tables.js	2018-10-18 14:49:24.000000000 -0400
++++ vulnerable/lib/db-tables.js	2018-11-04 12:42:07.000000000 -0500
+@@ -23,9 +23,9 @@
+  * utilities to restore to known state for tests.
+  */
+ 
+-const safesql = require('safesql');
++//const safesql = require('safesql');
+ 
+-const initStmts = safesql.pg`
++const initStmts = `
+ 
+ -- Relate unique principle IDs to display info.
+ CREATE TABLE IF NOT EXISTS Accounts (
+@@ -99,7 +99,7 @@
+ 
+ `;
+ 
+-const cannedData = safesql.pg`
++const cannedData = `
+ INSERT INTO Accounts
+   ( aid,          displayname, displaynamehtml,                                   publicurl )
+ VALUES
+@@ -151,7 +151,7 @@
+ 
+ 
+ const dropStmts = (() => {
+-  const createSql = initStmts.content;
++  const createSql = initStmts;
+   const tableNamePattern = /^CREATE (TABLE|INDEX) IF NOT EXISTS (\w+)/mg;
+ 
+   let dropSql = null;
+@@ -159,10 +159,10 @@
+     const [ , type, name ] = match;
+     const canonName = name.toLowerCase();
+     const dropStmt = type.toUpperCase() === 'INDEX' ?
+-      safesql.pg`DROP INDEX IF EXISTS "${ canonName }"` :
+-      safesql.pg`DROP TABLE IF EXISTS "${ canonName }"`;
++      `DROP INDEX IF EXISTS "${ canonName }"` :
++      `DROP TABLE IF EXISTS "${ canonName }"`;
+     dropSql = dropSql ?
+-      safesql.pg`${ dropSql };
++      `${ dropSql };
+ ${ dropStmt }` :
+       dropStmt;
+   }
+@@ -198,9 +198,9 @@
+ }
+ 
+ function clearTables(dbPool) {
+-  return promiseToRun(dbPool, safesql.pg`${ dropStmts };${ initStmts }`);
++  return promiseToRun(dbPool, `${ dropStmts };${ initStmts }`);
+ }
+ 
+ function initializeTablesWithTestData(dbPool) {
+-  return promiseToRun(dbPool, safesql.pg`${ dropStmts };${ initStmts };${ cannedData }`);
++  return promiseToRun(dbPool, `${ dropStmts };${ initStmts };${ cannedData }`);
+ }
+--- lib/dbi.js	2018-11-02 11:48:38.000000000 -0400
++++ vulnerable/lib/dbi.js	2018-11-04 12:33:58.000000000 -0500
+@@ -24,26 +24,27 @@
+ 
+ // SENSITIVE - Responsible for not leaking personally identifying information.
+ 
+-require('module-keys/cjs').polyfill(module, require);
++//require('module-keys/cjs').polyfill(module, require);
+ 
+-const { box, isPublicKey } = require.keys;
++//const { box, isPublicKey } = require.keys;
+ 
+-const safesql = require('safesql');
++//const safesql = require('safesql');
+ 
+-const sessionTimeoutMs = safesql.pg`(interval '1 hour')`;
++const sessionTimeoutMs = `(interval '1 hour')`;
+ const linkify = require('./poorly-written-linkifier.js');
+ const { sanitize } = require('./safe/html.js');
+-const { publicKey: accountPubKey } = require('../lib/handlers/account.pug');
++//const { publicKey: accountPubKey } = require('../lib/handlers/account.pug');
+ 
+ const defaultLimit = 10; // eslint-disable-line no-magic-numbers
+ 
+ /**
+  * True when the principal identified by the given public key
+  * may read publicly identifying information?
+- */
++ *
+ function mayReadPii(readerPubKey) { // eslint-disable-line no-unused-vars
+   return isPublicKey(readerPubKey) && readerPubKey() && readerPubKey === accountPubKey;
+ }
++*/
+ 
+ function fallbackToPlainText(plainText, untrustedHtml, fallback) {
+   return (untrustedHtml ? sanitize(untrustedHtml) : plainText) || fallback;
+@@ -59,13 +60,13 @@
+       database.connect().then(
+         (client) => {
+           client.query(
+-            safesql.pg`
++            `
+ -- Remove any timed out sessions
+-DELETE FROM Sessions WHERE sessionnonce=${ sessionNonce } AND created < (NOW() - ${ sessionTimeoutMs });
++DELETE FROM Sessions WHERE sessionnonce='${ sessionNonce }' AND created < (NOW() - ${ sessionTimeoutMs });
+ 
+ -- Create a session entry if none, otherwise reset timeout countdown.
+ INSERT INTO Sessions (sessionnonce, aid)
+-  VALUES             (${ sessionNonce }, NULL)
++  VALUES             ('${ sessionNonce }', NULL)
+   ON CONFLICT (sessionnonce) DO UPDATE SET created=NOW();
+ 
+ -- Get the user info we need.
+@@ -74,7 +75,7 @@
+   FROM      Sessions
+   LEFT JOIN Accounts     ON Sessions.aid = Accounts.aid
+   LEFT JOIN PersonalInfo ON Sessions.aid = PersonalInfo.aid
+-  WHERE Sessions.sessionnonce = ${ sessionNonce }
++  WHERE Sessions.sessionnonce = '${ sessionNonce }'
+ `)
+             .then(
+               (resultSet) => {
+@@ -99,8 +100,8 @@
+                     aid,
+                     displayName: fallbackToPlainText(displayname, displaynamehtml, 'Anonymous'),
+                     publicUrl: publicurl,
+-                    realName: box(realname, mayReadPii),
+-                    email: box(email, mayReadPii),
++                    realName: realname,
++                    email,
+                   });
+                 }
+               },
+@@ -117,19 +118,19 @@
+   function fetchPostsSql() {
+     // The NULL author authors nothing even if we end up with NULLs
+     // in the author column perhaps due to some mistake by a dbadmin.
+-    const isAuthor = aid ? safesql.pg`Posts.author = ${ aid }` : safesql.pg`FALSE`;
++    const isAuthor = aid ? `Posts.author = ${ aid }` : `FALSE`;
+ 
+     // Intentionally large attack surface.
+     // This code is not only relying on access control checks in SQL, but SQL that
+     // has attacker controlled strings inserted since the sessionNonce is part of the
+     // HTTP request, and limit and offset are directly controllable via parameters.
+-    const selectPostFields = safesql.pg`
++    const selectPostFields = `
+ SELECT Posts.pid, Posts.author, Posts.bodyhtml, Posts.created,
+        Accounts.displayname AS authorname, Accounts.displaynamehtml AS authornamehtml,
+        Accounts.publicurl AS authorurl
+   FROM       Posts`;
+ 
+-    return safesql.pg`
++    return `
+ (
+ -- First select the public and owned ones
+ ${ selectPostFields }
+@@ -174,7 +175,7 @@
+       pidToPost.set(pid, post);
+     }
+     return {
+-      sql: safesql.pg`SELECT pid, urlpath FROM PostResources WHERE pid IN ( ${ pids } ) ORDER BY rid;`,
++      sql: `SELECT pid, urlpath FROM PostResources WHERE pid IN ( ${ pids.join(', ') } ) ORDER BY rid;`,
+       pidToPost,
+     };
+   }
+--- lib/handlers/account.js	2018-11-02 11:49:46.000000000 -0400
++++ vulnerable/lib/handlers/account.js	2018-11-05 09:18:41.000000000 -0500
+@@ -22,11 +22,11 @@
+  * Displays recent posts visible to the current user.
+  */
+ 
+-require('module-keys/cjs').polyfill(module, require);
++//require('module-keys/cjs').polyfill(module, require);
+ 
+ const { URL } = require('url');
+ const template = require('./account.pug');
+-const safesql = require('safesql');
++//const safesql = require('safesql');
+ 
+ // eslint-disable-next-line no-magic-numbers
+ const STATUS_TEMPORARY_REDIRECT = 302;
+@@ -68,6 +68,7 @@
+   }
+ 
+   const cont = (params.cont && params.cont[0]) || req.headers.referer || '/';
++  const displayNameIsHtml = Boolean(params.displayNameIsHtml);
+   if (isPost) {
+     commitThenRedirect(); // eslint-disable-line no-use-before-define
+   } else {
+@@ -81,7 +82,6 @@
+     }
+ 
+     const { aid } = currentAccount;
+-    const displayNameIsHtml = Boolean(params.displayNameIsHtml);
+     const displayNameText = trimOrNull(params.displayName);
+     const displayname = displayNameIsHtml ? null : displayNameText;
+     const displaynamehtml = displayNameIsHtml ? displayNameText : null;
+@@ -104,16 +104,16 @@
+         }
+ 
+         function commitAccountChanges() {
+-          const sql = safesql.pg`
++          const sql = `
+             UPDATE Accounts
+-             SET   displayname=${ displayname },
+-                   displaynamehtml=${ displaynamehtml },
+-                   publicurl=${ publicurl }
++             SET   displayname='${ displayname }',
++                   displaynamehtml='${ displaynamehtml }',
++                   publicurl='${ publicurl }'
+              WHERE aid=${ aid };
+ 
+             UPDATE PersonalInfo
+-             SET   realname=${ realname },
+-                   email=${ email }
++             SET   realname='${ realname }',
++                   email='${ email }'
+              WHERE aid=${ aid };`;
+           client.query(sql).then(
+             success,
+@@ -127,6 +127,6 @@
+ 
+   function serveForm() {
+     res.statusCode = 200;
+-    res.end(template(Object.assign({}, bundle, { cont })));
++    res.end(template(Object.assign({}, bundle, { cont, displayNameIsHtml })));
+   }
+ };
+--- lib/handlers/account.pug	2018-11-02 11:51:27.000000000 -0400
++++ vulnerable/lib/handlers/account.pug	2018-11-04 14:01:11.000000000 -0500
+@@ -7,6 +7,7 @@
+ mixin body()
+   - let displayName = currentAccount.displayName || ''
+   form(id="account" method="post" action="/account")
++    input(name="_csrf" type="hidden" value=csrf)
+     table.formatting
+       tr
+         td(colspan=2)
+@@ -16,7 +17,7 @@
+           label(for= "displayName") Display Name
+         td
+           input(name="displayName" value=displayName)
+-          input(name="displayNameIsHtml" checked=(typeof currentAccount.displayName === 'object') type="checkbox")
++          input(name="displayNameIsHtml" checked=displayNameIsHtml type="checkbox")
+           label.assocleft(for= "displayNameIsHtml") HTML
+       tr
+         td
+@@ -30,12 +31,12 @@
+         td
+           label(for= "realName") Real Name
+         td
+-          input(name="realName" value=require.keys.unbox(currentAccount.realName, () => true))
++          input(name="realName" value=currentAccount.realName)
+       tr
+         td
+           label(for= "email") Email
+         td
+-          input(name="email" value=require.keys.unbox(currentAccount.email, () => true))
++          input(name="email" value=currentAccount.email)
+     input(name="cont" type="hidden" value=cont)
+   button(form="account" type="submit") Submit
+   |
+--- lib/handlers/echo.js	2018-10-16 11:48:05.000000000 -0400
++++ vulnerable/lib/handlers/echo.js	2018-11-04 12:55:27.000000000 -0500
+@@ -28,7 +28,7 @@
+  */
+ 
+ const template = require('./echo.pug');
+-const safesql = require('safesql');
++//const safesql = require('safesql');
+ 
+ exports.handle = (bundle, handleError) => {
+   const { database, reqUrl, res } = bundle;
+@@ -49,8 +49,8 @@
+ 
+   database.connect().then(
+     (client) => {
+-      const query = safesql.pg`SELECT ${
+-        inputs.map(([ name, value ]) => safesql.pg`${ value } AS "${ name }"`) }`;
++      const query = `SELECT ${
++        inputs.map(([ name, value ]) => `'${ value }' AS "${ name }"`) }`;
+       // eslint-disable-next-line no-console
+       console.log(`echo sending ${ query }`);
+       client.query(query).then(
+--- lib/handlers/includes/envelope.pug	2018-10-24 12:30:20.000000000 -0400
++++ vulnerable/lib/handlers/includes/envelope.pug	2018-11-04 13:58:44.000000000 -0500
+@@ -3,8 +3,8 @@
+   head
+     title
+       +title()
+-    script(src='/common.js')
+-    link(rel='stylesheet' href='/styles.css')
++    script(src='/common.js' nonce=cspNonce)
++    link(rel='stylesheet' href='/styles.css' nonce=cspNonce)
+   body
+     if reqUrl.pathname !== '/login'
+       .userfloat
+@@ -18,6 +18,7 @@
+                 action=`/logout?cont=${encodeURIComponent(reqUrl.pathname + reqUrl.search)}`
+                 method="POST"
+                 name="logout")
++              input(name="_csrf" type="hidden" value=csrf)
+               button.logoutlink(type="submit") logout
+         else
+           a.loginlink(href="/login") login
+--- lib/handlers/includes/post-common.pug	2018-10-22 10:52:34.000000000 -0400
++++ vulnerable/lib/handlers/includes/post-common.pug	2018-11-04 13:59:38.000000000 -0500
+@@ -21,6 +21,7 @@
+     p.error
+       =error
+   form(id="post-form" action="/post" enctype="multipart/form-data" method="POST")
++    input(name="_csrf" type="hidden" value=csrf)
+     textarea(name="body" cols="40" rows="5")= ((preview && (preview.unsanitizedBody || preview.body)) || '')
+     div
+       label(for="public") Public
+--- lib/handlers/login.js	2018-10-31 15:48:37.000000000 -0400
++++ vulnerable/lib/handlers/login.js	2018-11-04 12:52:00.000000000 -0500
+@@ -22,11 +22,10 @@
+  * Associates the current session with an account.
+  */
+ 
+-require('module-keys/cjs').polyfill(module, require);
++//require('module-keys/cjs').polyfill(module, require);
+ 
+ const { URL } = require('url');
+ 
+-const safesql = require('safesql');
+ const bodyParser = require('body-parser');
+ 
+ const template = require('./login.pug');
+@@ -104,10 +103,10 @@
+                 // If there's no account id associated with the given email, we need to create an
+                 // account record, before updating the PersonalInfo table with the email.
+                 function createNewAccount() {
+-                  client.query(safesql.pg`INSERT INTO Accounts DEFAULT VALUES RETURNING *`).then(
++                  client.query(`INSERT INTO Accounts DEFAULT VALUES RETURNING *`).then(
+                     (resultSet) => {
+                       const [ { aid } ] = resultSet.rows;
+-                      client.query(safesql.pg`INSERT INTO PersonalInfo (aid, email) VALUES (${ aid }, ${ email })`)
++                      client.query(`INSERT INTO PersonalInfo (aid, email) VALUES (${ aid }, '${ email }')`)
+                         .then(
+                           () => {
+                             // eslint-disable-next-line no-use-before-define
+@@ -124,8 +123,8 @@
+                 function associateAccountWithSessionNonce(resultSet) {
+                   if (resultSet.rowCount === 1) {
+                     const [ { aid } ] = resultSet.rows;
+-                    const sessionNonceValue = require.keys.unbox(sessionNonce, () => true);
+-                    client.query(safesql.pg`UPDATE SESSIONS SET aid=${ aid } WHERE sessionnonce=${ sessionNonceValue }`)
++                    //const sessionNonceValue = require.keys.unbox(sessionNonce, () => true);
++                    client.query(`UPDATE SESSIONS SET aid=${ aid } WHERE sessionnonce='${ sessionNonce }'`)
+                       .then(
+                         (updates) => {
+                           client.release();
+@@ -140,7 +139,7 @@
+                     createNewAccount();
+                   }
+                 }
+-                client.query(safesql.pg`SELECT aid FROM PersonalInfo WHERE email=${ email }`).then(
++                client.query(`SELECT aid FROM PersonalInfo WHERE email='${ email }'`).then(
+                   associateAccountWithSessionNonce,
+                   releaseAndReject);
+               },
+--- lib/handlers/login.pug	2018-10-17 11:48:53.000000000 -0400
++++ vulnerable/lib/handlers/login.pug	2018-11-04 13:59:07.000000000 -0500
+@@ -9,6 +9,7 @@
+       | Email is a required field.
+ 
+   form(method="POST" action=reqUrl.pathname id="login")
++    input(name="_csrf" type="hidden" value=csrf)
+     label(for="email") Email
+     input(name="email" value=email)
+     input(name="cont" type="hidden" value=cont)
+--- lib/handlers/logout.js	2018-10-31 15:48:30.000000000 -0400
++++ vulnerable/lib/handlers/logout.js	2018-11-04 12:52:18.000000000 -0500
+@@ -22,11 +22,11 @@
+  * Remove the association between the current session and any account.
+  */
+ 
+-require('module-keys/cjs').polyfill(module, require);
++//require('module-keys/cjs').polyfill(module, require);
+ 
+ const { URL } = require('url');
+ 
+-const safesql = require('safesql');
++//const safesql = require('safesql');
+ const template = require('./logout.pug');
+ 
+ // eslint-disable-next-line no-magic-numbers
+@@ -55,7 +55,7 @@
+ 
+   database.connect().then(
+     (client) => {
+-      client.query(safesql.pg`UPDATE SESSIONS SET aid=NULL WHERE sessionnonce=${ sessionNonceValue }`)
++      client.query(`UPDATE SESSIONS SET aid=NULL WHERE sessionnonce='${ sessionNonceValue }'`)
+         .then(
+           () => {
+             client.release();
+--- lib/handlers/logout.pug	2018-10-17 12:02:42.000000000 -0400
++++ vulnerable/lib/handlers/logout.pug	2018-11-04 13:59:22.000000000 -0500
+@@ -7,6 +7,7 @@
+ 
+   center
+     form(method="POST" action="/logout" id="logout")
++      input(name="_csrf" type="hidden" value=csrf)
+       input(type="hidden" name="cont" value=cont)
+     button(type="submit" form="logout") Logout
+     |
+--- lib/handlers/post.js	2018-10-25 12:17:00.000000000 -0400
++++ vulnerable/lib/handlers/post.js	2018-11-04 12:54:15.000000000 -0500
+@@ -25,12 +25,12 @@
+ const path = require('path');
+ 
+ const template = require('./post.pug');
+-const childProcess = require('../safe/child_process.js');
++const childProcess = require('child_process');
+ const { sanitize } = require('../safe/html.js');
+ 
+ const relativeDate = require('tiny-relative-date');
+ const mime = require('mime-types');
+-const safesql = require('safesql');
++//const safesql = require('safesql');
+ const { sh } = require('sh-template-tag');
+ const { URL } = require('url');
+ 
+@@ -174,11 +174,11 @@
+         const authorId = currentAccount ? currentAccount.aid : null;
+ 
+         function insertPostSql() {
+-          return safesql.pg`
++          return `
+ INSERT INTO Posts
+   ( author,        public,        bodyhtml,  created  )
+ VALUES
+-  ( ${ authorId }, ${ isPublic }, ${ body }, ${ now } )
++  ( ${ authorId }, ${ isPublic }, '${ body.replace(/'/g, '\'\'') }', ${ now } )
+ RETURNING pid`;
+         }
+ 
+@@ -186,8 +186,8 @@
+           if (!images.length) {
+             return Promise.resolve(null);
+           }
+-          const imageTuples = images.map((relurl) => safesql.pg`( ${ pid }, ${ relurl } )`);
+-          const imageSql = safesql.pg`INSERT INTO PostResources (pid, urlpath) VALUES ${ imageTuples };`;
++          const imageTuples = images.map((relurl) => `( ${ pid }, '${ relurl }' )`);
++          const imageSql = `INSERT INTO PostResources (pid, urlpath) VALUES ${ imageTuples.join(', ') };`;
+           return client.query(imageSql);
+         }
+ 
+--- lib/safe/child_process.js	2018-10-31 10:12:49.000000000 -0400
++++ vulnerable/lib/safe/child_process.js	2018-11-05 09:19:07.000000000 -0500
+@@ -31,6 +31,8 @@
+ 
+ 'use strict'; // eslint-disable-line filenames/match-regex
+ 
++/*
++
+ const childProcess = require('child_process');
+ const { ShFragment } = require('sh-template-tag');
+ const { Mintable } = require('node-sec-patterns');
+@@ -80,3 +82,5 @@
+   }
+   return childProcess.exec(command, options);
+ };
++
++*/
+--- lib/safe/html.js	2018-10-31 10:09:49.000000000 -0400
++++ vulnerable/lib/safe/html.js	2018-11-04 12:35:40.000000000 -0500
+@@ -40,15 +40,15 @@
+ 
+ 'use strict';
+ 
+-require('module-keys/cjs').polyfill(module, require);
++//require('module-keys/cjs').polyfill(module, require);
+ 
+-const { TrustedHTML } = require('web-contract-types');
+-const { Mintable } = require('node-sec-patterns');
++//const { TrustedHTML } = require('web-contract-types');
++//const { Mintable } = require('node-sec-patterns');
+ const createDOMPurify = require('dompurify');
+ const { JSDOM } = require('jsdom');
+ 
+-const mintTrustedHTML = require.keys.unbox(
+-  Mintable.minterFor(TrustedHTML), () => true, (x) => x);
++//const mintTrustedHTML = require.keys.unbox(
++//  Mintable.minterFor(TrustedHTML), () => true, (x) => x);
+ const { window } = (new JSDOM(''));
+ const DOMPurify = createDOMPurify(window);
+ const sanitize = DOMPurify.sanitize.bind(DOMPurify);
+@@ -62,9 +62,4 @@
+  *    Otherwises coerces to string and sanitizes.
+  * @return {TrustedHTML}
+  */
+-module.exports.sanitize = (html) => {
+-  if (TrustedHTML.is(html)) {
+-    return html;
+-  }
+-  return mintTrustedHTML(sanitize(`${ html }`));
+-};
++module.exports.sanitize = sanitize;
+--- lib/safe/pg.js	2018-10-31 10:22:24.000000000 -0400
++++ vulnerable/lib/safe/pg.js	2018-11-04 12:37:48.000000000 -0500
+@@ -38,6 +38,8 @@
+ // but which only issues messages to the database whose content is part of a
+ // SqlFragment minted by an authorized minter.
+ 
++return;
++
+ const { apply } = Reflect;
+ // eslint-disable-next-line id-length
+ const pg = require('pg');
+--- lib/server.js	2018-11-02 11:53:28.000000000 -0400
++++ vulnerable/lib/server.js	2018-11-05 09:19:24.000000000 -0500
+@@ -38,7 +38,7 @@
+ 
+ // GUARANTEE - One user cannot get another user's session nonce.
+ 
+-require('module-keys/cjs').polyfill(module, require);
++//require('module-keys/cjs').polyfill(module, require);
+ 
+ const crypto = require('crypto');
+ const http = require('http');
+@@ -64,7 +64,7 @@
+ const csrfCrypto = require('csrf-crypto');
+ const multiparty = require('multiparty');
+ const serveStatic = require('serve-static');
+-const { TrustedHTML } = require('web-contract-types');
++//const { TrustedHTML } = require('web-contract-types');
+ const { handle: handleError } = require('./handlers/error.js');
+ const { getCurrentAccount } = require('./dbi.js');
+ 
+@@ -94,6 +94,7 @@
+   },
+ });
+ 
++/*
+ const sessionKeyWhitelist = new Set([
+   // eslint-disable-next-line global-require
+   require('./handlers/login.js').publicKey, require('./handlers/logout.js').publicKey,
+@@ -101,6 +102,7 @@
+ function sessionNonceGuard(key) {
+   return require.keys.isPublicKey(key) && key() && sessionKeyWhitelist.has(key);
+ }
++*/
+ 
+ function start(
+   { hostName, port, rootDir, database, writeToPlaybackLog },
+@@ -157,12 +159,12 @@
+       });
+     return nonce;
+   }
+-
++  /*
+   function requireTrustedHTML(...chunks) {
+     const html = TrustedHTML.concat(...(chunks.map(TrustedHTML.escape)));
+     return TrustedHTML.is(html) ? html.content : ' ';
+   }
+-
++  */
+   function monkeypatch(req, res) {
+     const cookies = [];
+ 
+@@ -177,12 +179,14 @@
+     };
+ 
+     // Ensure that the response body is trusted HTML chunks.
++    /*
+     const end = res.end.bind(res);
+     const write = res.write.bind(res);
+     res.end =
+       (html, ...rest) =>
+         (html || rest.length ? end(requireTrustedHTML(html), ...rest) : end());
+     res.write = (html, ...rest) => write(requireTrustedHTML(html), ...rest);
++    */
+   }
+ 
+   // Handles and end()s HTTP requests.
+@@ -231,7 +235,7 @@
+       },
+       database,
+       cspNonce,
+-      sessionNonce: require.keys.box(sessionNonce, sessionNonceGuard),
++      sessionNonce/*: require.keys.box(sessionNonce, sessionNonceGuard)*/,
+       /* eslint-disable no-underscore-dangle */
+       get _csrf() {
+         // Thread through from crypto-csrf above to Pug automagic.
+--- main.js	2018-11-01 15:01:26.000000000 -0400
++++ vulnerable/main.js	2018-11-05 09:19:47.000000000 -0500
+@@ -1,4 +1,4 @@
+-#!/usr/bin/env ./bin/node --cjs-loader ./lib/framework/init-hooks.js --disallow_code_generation_from_strings
++#!/usr/bin/env node
+ 
+ /**
+  * @license
+@@ -34,10 +34,10 @@
+ 
+ const isMain = require.main === module;
+ 
+-require('./lib/framework/bootstrap-secure.js')(path.resolve(__dirname), isMain);
++//require('./lib/framework/bootstrap-secure.js')(path.resolve(__dirname), isMain);
+ 
+ const { start } = require('./lib/server.js');
+-const safepg = require('./lib/safe/pg.js');
++const safepg = require('pg');
+ const { initializeTablesWithTestData } = require('./lib/db-tables');
+ const { flock } = require('fs-ext');
+ 
+@@ -50,7 +50,7 @@
+ 
+ if (isMain) {
+   // Fail fast if run via `node main.js` instead of as a script with the flags from #! above.
+-  let evalWorks = true;
++  let evalWorks = false; // Disable check in vulnerable server.
+   try {
+     eval(String(Math.random())); // eslint-disable-line no-eval
+   } catch (evalFailed) {
+--- package.json	2018-11-03 13:35:24.000000000 -0400
++++ vulnerable/package.json	2018-11-05 09:13:12.000000000 -0500
+@@ -151,17 +151,12 @@
+     "jsdom": "^12.2.0",
+     "mime-types": "^2.1.20",
+     "multiparty": "^4.2.1",
+-    "node-sec-patterns": "^2.0.7",
+     "pg": "^7.5.0",
+     "pug": "^2.0.3",
+     "pug-require": "^1.0.13-alpha",
+-    "pug-runtime-trusted-types": "^1.0.13-alpha",
+-    "safesql": "^1.0.6",
+     "serve-static": "^1.13.2",
+-    "sh-template-tag": "^3.0.7",
+     "tiny-relative-date": "^1.3.0",
+-    "tlds": "^1.203.1",
+-    "web-contract-types": "^1.0.8"
++    "tlds": "^1.203.1"
+   },
+   "devDependencies": {
+     "capture-console": "^1.0.1",
+--- scripts/run-locally.js	2018-10-30 12:56:09.000000000 -0400
++++ vulnerable/scripts/run-locally.js	2018-11-04 12:27:36.000000000 -0500
+@@ -1,4 +1,4 @@
+-#!./bin/node
++#!/usr/bin/env node
+ 
+ /**
+  * @license

@@ -9,6 +9,8 @@
 /pg
 # Stores uploaded files
 /static/user-uploads
+# Server variant
+/vulnerable/**
 
 # Emacs droppings
 *~
