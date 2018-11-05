@@ -49,9 +49,9 @@ if [[ "true" != "$TRAVIS" ]]; then
 fi
 
 # Apply some other patches to workaround issues.
+pushd "$PROJECT_ROOT" > /dev/null
 PATCHES_DIR="$PROJECT_ROOT/patches"
 if grep -q eval "$PROJECT_ROOT/node_modules/depd/index.js"; then
-    pushd "$PROJECT_ROOT" > /dev/null
     # Update to (unreleased as of this writing) depd version 2.0.0 which
     # uses `new Function` instead of `eval` to create an arity-matching
     # function wrapper.
@@ -62,5 +62,8 @@ if grep -q eval "$PROJECT_ROOT/node_modules/depd/index.js"; then
     # The specific commit we need is
     # github.com/dougwilson/nodejs-depd/commit/887283b41c43d98b8ee8e8110d7443155de28682#diff-e1bbd4f15e3b63427b4261e05b948ea8
     patch -p1 < patches/node_modules-depd-index.patch
-    popd > /dev/null
 fi
+if ! grep -q isExtensible "$PROJECT_ROOT/node_modules/fs-ext/fs-ext.js"; then
+    patch -p1 < patches/node_modules-fsext-fsext.patch
+fi
+popd > /dev/null
