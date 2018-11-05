@@ -11,6 +11,7 @@
     "postinstall": "scripts/postinstall.sh",
     "prepack": "npm run lint && npm test",
     "prepublishOnly": "echo This package should not be published to NPM && false",
+    "pretest": "./scripts/build-vulnerable.sh -c",
     "test": "scripts/test.sh"
   },
   "repository": {

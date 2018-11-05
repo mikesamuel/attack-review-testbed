@@ -22,7 +22,7 @@
 const { URL } = require('url');
 
 module.exports = {
-  requests: (baseUrl) => [
+  requests: (baseUrl, { isVulnerable }) => (isVulnerable ? [] : [
     {
       req: {
         uri: new URL('/echo?a%22=b%27&foo=bar&baz', baseUrl).href,
@@ -67,5 +67,5 @@ module.exports = {
         statusCode: 200,
       },
     },
-  ],
+  ]),
 };

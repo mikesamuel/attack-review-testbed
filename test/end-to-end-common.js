@@ -31,7 +31,7 @@ const fs = require('fs');
 const path = require('path');
 const request = require('request');
 
-module.exports = function runEndToEndCases(makeTestFunction, isProduction) {
+module.exports = function runEndToEndCases(makeTestFunction, options) {
   const casesDir = path.join(__dirname, 'cases', 'end-to-end');
   // eslint-disable-next-line no-sync
   for (const file of fs.readdirSync(casesDir)) {
@@ -108,7 +108,7 @@ module.exports = function runEndToEndCases(makeTestFunction, isProduction) {
         };
       }
 
-      for (const { req, res, after } of requests(baseUrl, isProduction)) {
+      for (const { req, res, after } of requests(baseUrl, options)) {
         const { body = [], statusCode = 200, logs: { stderr = '', stdout = '' }, headers = {} } =
           typeof res === 'function' ? res(lastResponse, lastDerived) : res;
         promise = new Promise((resolve, reject) => { // eslint-disable-line no-loop-func
@@ -189,7 +189,7 @@ module.exports = function runEndToEndCases(makeTestFunction, isProduction) {
         });
       }
       promise.then(() => done(), done);
-    });
+    }, options);
     it(file.replace(/\.js$/, ''), testFunction);
   }
 };

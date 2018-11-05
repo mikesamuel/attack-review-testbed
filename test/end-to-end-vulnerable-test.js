@@ -19,14 +19,8 @@
 
 /**
  * @fileoverview
- * Runs the same test suite as end-to-end-test, but in a separate process.
- * It helps to have both of these.
- *
- * end-to-end-test tests code coverage and builds the dynamic module graph
- * used by scripts/generate-production-source-list.js.
- *
- * This test checks that we get the same results even when the security
- * machinery under lib/framework is in production configuration.
+ * Runs the same test suite as end-to-end-test, but in a separate process
+ * and against the vulnerable variant of the server.
  */
 
 const { describe } = require('mocha');
@@ -36,13 +30,14 @@ const process = require('process');
 const runEndToEndCases = require('./end-to-end-common.js');
 
 const externalProcessTestServer = require('./external-process-test-server.js');
-const root = path.resolve(path.join(__dirname, '..'));
+const root = path.resolve(path.join(__dirname, '..', 'vulnerable'));
 
 // eslint-disable-next-line no-process-env
-if (process.env.SOURCE_LIST_UP_TO_DATE !== '0' && !('TRAVIS' in process.env)) {
-  describe('end-to-end-lockeddown', () => {
+if (process.env.SOURCE_LIST_UP_TO_DATE !== '0') {
+  describe('end-to-end-vulnerable', () => {
     const options = {
-      // We pass NODE_ENV=production.
+      isVulnerable: true,
+      // Vulnerable server hardcodes isProduction to true.
       isProduction: true,
       quiet: true,
       root,

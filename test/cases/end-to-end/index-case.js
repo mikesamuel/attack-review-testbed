@@ -25,7 +25,7 @@ const now = Number(new Date('2018-10-12 12:00:00Z'));
 const homePagePath = `/?now=${ now }`;
 
 module.exports = {
-  requests: (baseUrl) => [
+  requests: (baseUrl, { isVulnerable }) => [
     {
       req: {
         uri: new URL(homePagePath, baseUrl).href,
@@ -61,7 +61,11 @@ module.exports = {
           '</li>',
           '<li>',
           '<span class="author name">',
-          '<a href="about:invalid#TrustedURL">Bob</a>',
+          (
+            isVulnerable ?
+              '<a href="javascript:alert(1)">Bob</a>' :
+              '<a href="about:invalid#TrustedURL">Bob</a>'
+          ),
           '</span>',
           '<span class="created">6 days ago</span>',
           '<div class="body">Ada, !</div>',

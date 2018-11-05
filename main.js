@@ -45,7 +45,22 @@ const processInfo = {
   pid: process.pid,
   argv: [ ...process.argv ],
   start: Date.now(),
-  hash: execSync('git rev-parse HEAD', { encoding: 'utf8' }).replace(/\s+$/, ''),
+  lastcommit: (() => {
+    try {
+      return execSync('git rev-parse HEAD', { encoding: 'utf8' }).replace(/\s+$/, '');
+    } catch (exc) {
+      return 'git failed';
+    }
+  })(),
+  localhash: (() => {
+    try {
+      // `git rev-parse HEAD` does not include changes to the local client.
+      // This doesn't included unadded files, but is better.
+      return execSync('git show --pretty=%h --abbrev=32 | shasum -ba1', { encoding: 'utf8' }).replace(/\s+$/, '');
+    } catch (exc) {
+      return 'git failed';
+    }
+  })(),
 };
 
 if (isMain) {

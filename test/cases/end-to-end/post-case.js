@@ -26,8 +26,6 @@ const path = require('path');
 const { URL } = require('url');
 const { expect } = require('chai');
 
-const projectRoot = path.resolve(path.join(__dirname, '..', '..', '..'));
-
 const now = Number(new Date('2018-10-22 12:00:00Z'));
 
 // Logs in
@@ -38,9 +36,8 @@ const now = Number(new Date('2018-10-22 12:00:00Z'));
 // Views the index page with the new post.
 const indexRelUrl = `/?now=${ now }&offset=4`;
 
-
 module.exports = {
-  requests: (baseUrl) => {
+  requests: (baseUrl, { root: projectRoot }) => {
     // Store map with randomly generated filenames so we can test stability over
     // multiple POSTS.
     let filenameMapFromUploadPost = null;

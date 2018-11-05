@@ -1,12 +1,10 @@
 #!/bin/bash
 
 # Builds a variant of the target server but with protective measures disabled.
-#
-# Usually run thus:
-# ./scripts/gen-vulnerable-patch.sh > vulnerable.patch
 
 set -e
 
+# This should match the same lines in build-vulnerable.sh
 source_files="$(
     git check-ignore -n -v --no-index \
         $( find lib -type f | grep -v lib/framework;
@@ -15,7 +13,16 @@ source_files="$(
 )"
 
 (
-  for f in $source_files; do
-    diff -u "$f" vulnerable/"$f" || true
-  done
-)
+    for f in $source_files node_modules/pug-require/index.js; do
+        diff -u "$f" vulnerable/"$f" || true
+    done
+) > vulnerable.patch
+
+# This should match the same lines in build-vulnerable.sh
+hash_from="$(
+    shasum -ba 1 vulnerable.patch $source_files
+)"
+
+if [ -d vulnerable/ ]; then
+    echo -n "$hash_from" > vulnerable/patch-base.sha1
+fi

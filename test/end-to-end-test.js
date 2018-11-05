@@ -149,6 +149,6 @@ module.exports = (makePool) => {
   }
 
   describe('end-to-end', () => {
-    runEndToEndCases(serverTestFunction, false);
+    runEndToEndCases(serverTestFunction, { isProduction: false, root: rootDir });
   });
 };

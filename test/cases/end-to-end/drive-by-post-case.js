@@ -32,7 +32,7 @@ const now = Number(new Date('2018-10-22 12:00:00Z'));
 const indexRelUrl = `/?now=${ now }&offset=4`;
 
 module.exports = {
-  requests: (baseUrl, isProduction) => [
+  requests: (baseUrl, { isProduction }) => [
     // User logs in
     {
       req: {
