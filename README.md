@@ -19,6 +19,7 @@
    *  [`lib/framework/module-stubs/*.js`](#hdr-lib-framework-module-stubs-js-)
    *  [`lib/safe/*.js`](#hdr-lib-safe-js-)
    *  [`pg/**`](#hdr-pg-)
+   *  [`vulnerable/**`](#hdr-vulnerable-)
 *  [What is a breach?](#hdr-what-is-a-breach-)
    *  [XSS](#hdr-xss)
    *  [Documented Security Guarantees](#hdr-documented-security-guarantees)
@@ -28,6 +29,7 @@
 *  [What is not a breach?](#hdr-what-is-not-a-breach-)
    *  [Do not](#hdr-do-not)
 *  [Reporting and verifying a breach](#hdr-reporting-and-verifying-a-breach)
+   *  [Testing attacks against a vulnerable server](#hdr-testing-attacks-against-a-vulnerable-server)
 *  [Data collection](#hdr-data-collection)
 *  [Goals](#hdr-goals)
 *  [Getting Answers To Questions](#hdr-getting-answers-to-questions)
@@ -206,6 +208,13 @@ Safe-by-design APIs and wrappers for commonly misused, powerful APIs.
 Database files owned by the locally running Postgres server.
 `scripts/run-locally.js` sets up a server and a Postgres process that
 communicate via a UNIX domain socket.
+
+### `vulnerable/**`                     <a name="hdr-vulnerable-"></a>
+
+A vulnerable variant of the server created by applying
+`vulnerable.patch` to the server source files.  This server has most
+of the mitigations disabled, so you can test attacks against it and
+then see if they still work against the target server.
 
 </details>
 
@@ -415,11 +424,23 @@ If there's any dispute over who reported a breach first, we will
 take secret Gists' commit history into account, and may decide that
 a vulnerability was independently discovered by multiple reporters.
 
+### Testing attacks against a vulnerable server   <a name="hdr-testing-attacks-against-a-vulnerable-server"></a>
+
+Running `scripts/build-vulnerable.sh` will copy the server source files
+over to a directory [`vulnerable/`](#hdr-vulnerable-).
+
+You can then run `vulnerable/scripts/run-locally.js` to start up the
+modified server.
+
+The vulnerable server has most of the mitigations disabled, so you
+try an attack against the vulnerable server.  If it doesn't
+work against the target server, then the difference between the two
+mitigated the attack.
 
 ## Data collection                      <a name="hdr-data-collection"></a>
 
 When you run your server using `scripts/run-locally.js` it appends to a
-log file.  The information it logs is at most:
+log file, `request.log`.  The information it logs is at most:
 
 *  The content of every HTTP request to the target server which includes
    HTTP response bodies with uploads.
