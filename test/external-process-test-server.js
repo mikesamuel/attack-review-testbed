@@ -46,8 +46,8 @@ module.exports = (root) => function externalProcessTest(testFun, { quiet, isProd
   return function test(done) {
     // Each process has to spin up its own database, so this takes a bit longer
     // than the in-process tests.
-    this.slow(5000); // eslint-disable-line no-invalid-this, no-magic-numbers
-    this.timeout(10000); // eslint-disable-line no-invalid-this, no-magic-numbers
+    this.slow(7500); // eslint-disable-line no-invalid-this, no-magic-numbers
+    this.timeout(15000); // eslint-disable-line no-invalid-this, no-magic-numbers
 
     const tStart = Date.now();
     function logTestEvent(str) {
