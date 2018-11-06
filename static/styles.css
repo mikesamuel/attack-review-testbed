@@ -121,13 +121,16 @@ a.nounder {
     text-decoration: none;
 }
 
-banner {
-    border-left: .25em solid #66b9bf;
-    width: 10em;
+.banner {
+    border: 2px solid #07889b;
+    background: #99ecf2;
+    color: #07889b;
+    width: 100%;
     text-align: center;
     display: block;
+    margin-top: 1em;
 }
 
-view-as-public:before {
+.view-as-public:before {
     content: "Public View!"
 }

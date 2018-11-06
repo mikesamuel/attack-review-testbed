@@ -146,6 +146,11 @@ module.exports = {
           '</li>',
           // No "Eat at Joe's" post.
           '</ol>',
+          '<div>',
+          '<a href="/post">',
+          '<button type="button">+ New Post</button>',
+          '</a>',
+          '</div>',
           '</body>',
           '</html>',
         ],

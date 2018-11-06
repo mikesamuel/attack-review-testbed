@@ -12,5 +12,8 @@ mixin body()
     for post in posts
       li
         +post(post)
+  div
+    a(href='/post')
+      button(type='button') + New Post
 
 include includes/envelope.pug
