@@ -120,3 +120,14 @@ form#account > table.formatting input:not([type]) {
 a.nounder {
     text-decoration: none;
 }
+
+banner {
+    border-left: .25em solid #66b9bf;
+    width: 10em;
+    text-align: center;
+    display: block;
+}
+
+view-as-public:before {
+    content: "Public View!"
+}

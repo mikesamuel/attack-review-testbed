@@ -45,8 +45,6 @@ module.exports = {
           '<div class="userfloat">',
           '<a class="loginlink" href="/login">login</a>',
           '</div>',
-          '<div class="banner view-as-public">',
-          '</div>',
           '<h1>Recent Posts</h1>',
           '<ol class="posts">',
           '<li>',

@@ -132,8 +132,6 @@ module.exports = {
           '<button class="logoutlink" type="submit">logout</button>',
           '</form>',
           '</div>',
-          '<div class="banner view-as-public">',
-          '</div>',
           '<h1>Recent Posts</h1>',
           '<ol class="posts">',
           '<li>',
