@@ -33,7 +33,7 @@ If you tweaked the vulnerable server regenerate vulnerable.patch:
   ./scripts/gen-vulnerable-patch.sh
 else if you changed the target server, regenerate the vulnerable server thus:
   mv vulnerable vulnerable.bak
-  ./build-vulnerable.sh
+  ./scripts/build-vulnerable.sh
 "
         exit 1
     fi

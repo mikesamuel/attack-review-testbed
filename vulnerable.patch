@@ -1,5 +1,5 @@
---- lib/db-tables.js	2018-10-18 14:49:24.000000000 -0400
-+++ vulnerable/lib/db-tables.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/db-tables.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/db-tables.js	2000-01-01 12:00:00.000000000 -0500
 @@ -23,7 +23,8 @@
   * utilities to restore to known state for tests.
   */
@@ -19,8 +19,8 @@
    const tableNamePattern = /^CREATE (TABLE|INDEX) IF NOT EXISTS (\w+)/mg;
  
    let dropSql = null;
---- lib/dbi.js	2018-11-06 13:40:29.000000000 -0500
-+++ vulnerable/lib/dbi.js	2018-11-06 13:56:30.000000000 -0500
+--- lib/dbi.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/dbi.js	2000-01-01 12:00:00.000000000 -0500
 @@ -24,29 +24,32 @@
  
  // SENSITIVE - Responsible for not leaking personally identifying information.
@@ -135,8 +135,8 @@
  
          function releaseAndReject(exc) {
            client.release();
---- lib/handlers/account.js	2018-11-02 11:49:46.000000000 -0400
-+++ vulnerable/lib/handlers/account.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/account.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/account.js	2000-01-01 12:00:00.000000000 -0500
 @@ -22,11 +22,12 @@
   * Displays recent posts visible to the current user.
   */
@@ -182,8 +182,8 @@
 +    res.end(template(Object.assign({}, bundle, { cont, displayNameIsHtml })));
    }
  };
---- lib/handlers/account.pug	2018-11-02 11:51:27.000000000 -0400
-+++ vulnerable/lib/handlers/account.pug	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/account.pug	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/account.pug	2000-01-01 12:00:00.000000000 -0500
 @@ -7,6 +7,7 @@
  mixin body()
    - let displayName = currentAccount.displayName || ''
@@ -216,8 +216,8 @@
      input(name="cont" type="hidden" value=cont)
    button(form="account" type="submit") Submit
    |
---- lib/handlers/echo.js	2018-10-16 11:48:05.000000000 -0400
-+++ vulnerable/lib/handlers/echo.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/echo.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/echo.js	2000-01-01 12:00:00.000000000 -0500
 @@ -28,7 +28,8 @@
   */
  
@@ -237,8 +237,8 @@
        // eslint-disable-next-line no-console
        console.log(`echo sending ${ query }`);
        client.query(query).then(
---- lib/handlers/error.js	2018-10-16 11:51:22.000000000 -0400
-+++ vulnerable/lib/handlers/error.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/error.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/error.js	2000-01-01 12:00:00.000000000 -0500
 @@ -22,7 +22,7 @@
   * Dumps an error trace to the output.
   */
@@ -248,8 +248,8 @@
  const template = require('./error.pug');
  
  function handleError(bundle, exc) {
---- lib/handlers/includes/envelope.pug	2018-10-24 12:30:20.000000000 -0400
-+++ vulnerable/lib/handlers/includes/envelope.pug	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/includes/envelope.pug	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/includes/envelope.pug	2000-01-01 12:00:00.000000000 -0500
 @@ -3,14 +3,14 @@
    head
      title
@@ -276,8 +276,8 @@
                button.logoutlink(type="submit") logout
          else
            a.loginlink(href="/login") login
---- lib/handlers/includes/post-common.pug	2018-10-22 10:52:34.000000000 -0400
-+++ vulnerable/lib/handlers/includes/post-common.pug	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/includes/post-common.pug	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/includes/post-common.pug	2000-01-01 12:00:00.000000000 -0500
 @@ -3,13 +3,13 @@
      span.author.name
        if post.authorUrl
@@ -303,8 +303,8 @@
      textarea(name="body" cols="40" rows="5")= ((preview && (preview.unsanitizedBody || preview.body)) || '')
      div
        label(for="public") Public
---- lib/handlers/login.js	2018-10-31 15:48:37.000000000 -0400
-+++ vulnerable/lib/handlers/login.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/login.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/login.js	2000-01-01 12:00:00.000000000 -0500
 @@ -22,11 +22,12 @@
   * Associates the current session with an account.
   */
@@ -349,8 +349,8 @@
                    associateAccountWithSessionNonce,
                    releaseAndReject);
                },
---- lib/handlers/login.pug	2018-10-17 11:48:53.000000000 -0400
-+++ vulnerable/lib/handlers/login.pug	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/login.pug	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/login.pug	2000-01-01 12:00:00.000000000 -0500
 @@ -9,6 +9,7 @@
        | Email is a required field.
  
@@ -359,8 +359,8 @@
      label(for="email") Email
      input(name="email" value=email)
      input(name="cont" type="hidden" value=cont)
---- lib/handlers/logout.js	2018-11-06 10:22:45.000000000 -0500
-+++ vulnerable/lib/handlers/logout.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/logout.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/logout.js	2000-01-01 12:00:00.000000000 -0500
 @@ -22,11 +22,12 @@
   * Remove the association between the current session and any account.
   */
@@ -390,8 +390,8 @@
          .then(
            () => {
              client.release();
---- lib/handlers/logout.pug	2018-10-17 12:02:42.000000000 -0400
-+++ vulnerable/lib/handlers/logout.pug	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/logout.pug	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/logout.pug	2000-01-01 12:00:00.000000000 -0500
 @@ -7,6 +7,7 @@
  
    center
@@ -400,8 +400,8 @@
        input(type="hidden" name="cont" value=cont)
      button(type="submit" form="logout") Logout
      |
---- lib/handlers/post.js	2018-10-25 12:17:00.000000000 -0400
-+++ vulnerable/lib/handlers/post.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/handlers/post.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/handlers/post.js	2000-01-01 12:00:00.000000000 -0500
 @@ -25,15 +25,27 @@
  const path = require('path');
  
@@ -433,7 +433,7 @@
  exports.handle = (bundle, handleError) => {
    const {
      req, res, reqUrl, database, currentAccount,
-@@ -70,7 +82,7 @@
+@@ -92,7 +104,7 @@
              const mimeType = mime.lookup(basename);
              if (typeof mimeType === 'string' && /^image\//.test(mimeType)) {
                const imagePath = path.join(userUploadsDir, basename);
@@ -442,7 +442,7 @@
                cmd = cmd ? sh`${ cmd } && ${ mvCommand }` : mvCommand;
                uploadedImagePaths.push(imagePath);
              } else {
-@@ -178,7 +190,7 @@
+@@ -200,7 +212,7 @@
  INSERT INTO Posts
    ( author,        public,        bodyhtml,  created  )
  VALUES
@@ -451,7 +451,7 @@
  RETURNING pid`;
          }
  
-@@ -186,8 +198,8 @@
+@@ -208,8 +220,8 @@
            if (!images.length) {
              return Promise.resolve(null);
            }
@@ -462,8 +462,8 @@
            return client.query(imageSql);
          }
  
---- lib/safe/child_process.js	2018-10-31 10:12:49.000000000 -0400
-+++ vulnerable/lib/safe/child_process.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/safe/child_process.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/safe/child_process.js	2000-01-01 12:00:00.000000000 -0500
 @@ -31,6 +31,8 @@
  
  'use strict'; // eslint-disable-line filenames/match-regex
@@ -479,8 +479,8 @@
  };
 +
 +*/
---- lib/safe/html.js	2018-10-31 10:09:49.000000000 -0400
-+++ vulnerable/lib/safe/html.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/safe/html.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/safe/html.js	2000-01-01 12:00:00.000000000 -0500
 @@ -40,15 +40,15 @@
  
  'use strict';
@@ -513,8 +513,8 @@
 -  return mintTrustedHTML(sanitize(`${ html }`));
 -};
 +module.exports.sanitize = sanitize;
---- lib/safe/pg.js	2018-10-31 10:22:24.000000000 -0400
-+++ vulnerable/lib/safe/pg.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/safe/pg.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/safe/pg.js	2000-01-01 12:00:00.000000000 -0500
 @@ -38,6 +38,8 @@
  // but which only issues messages to the database whose content is part of a
  // SqlFragment minted by an authorized minter.
@@ -524,8 +524,8 @@
  const { apply } = Reflect;
  // eslint-disable-next-line id-length
  const pg = require('pg');
---- lib/server.js	2018-11-02 11:53:28.000000000 -0400
-+++ vulnerable/lib/server.js	2018-11-06 13:01:05.000000000 -0500
+--- lib/server.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/lib/server.js	2000-01-01 12:00:00.000000000 -0500
 @@ -38,7 +38,7 @@
  
  // GUARANTEE - One user cannot get another user's session nonce.
@@ -599,8 +599,8 @@
        /* eslint-disable no-underscore-dangle */
        get _csrf() {
          // Thread through from crypto-csrf above to Pug automagic.
---- main.js	2018-11-05 14:20:19.000000000 -0500
-+++ vulnerable/main.js	2018-11-06 13:01:05.000000000 -0500
+--- main.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/main.js	2000-01-01 12:00:00.000000000 -0500
 @@ -1,4 +1,4 @@
 -#!/usr/bin/env ./bin/node --cjs-loader ./lib/framework/init-hooks.js --disallow_code_generation_from_strings
 +#!/usr/bin/env node
@@ -629,8 +629,8 @@
    try {
      eval(String(Math.random())); // eslint-disable-line no-eval
    } catch (evalFailed) {
---- package.json	2018-11-05 10:09:21.000000000 -0500
-+++ vulnerable/package.json	2018-11-06 13:01:05.000000000 -0500
+--- package.json	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/package.json	2000-01-01 12:00:00.000000000 -0500
 @@ -152,17 +152,12 @@
      "jsdom": "^12.2.0",
      "mime-types": "^2.1.20",
@@ -650,16 +650,16 @@
    },
    "devDependencies": {
      "capture-console": "^1.0.1",
---- scripts/run-locally.js	2018-10-30 12:56:09.000000000 -0400
-+++ vulnerable/scripts/run-locally.js	2018-11-06 13:01:05.000000000 -0500
+--- scripts/run-locally.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/scripts/run-locally.js	2000-01-01 12:00:00.000000000 -0500
 @@ -1,4 +1,4 @@
 -#!./bin/node
 +#!/usr/bin/env node
  
  /**
   * @license
---- node_modules/pug-require/index.js	1985-10-26 04:15:00.000000000 -0400
-+++ vulnerable/node_modules/pug-require/index.js	2018-11-06 13:01:05.000000000 -0500
+--- node_modules/pug-require/index.js	2000-01-01 12:00:00.000000000 -0500
++++ vulnerable/node_modules/pug-require/index.js	2000-01-01 12:00:00.000000000 -0500
 @@ -7,7 +7,7 @@
  const { assign, create, hasOwnProperty } = Object;
  const { apply } = Reflect;

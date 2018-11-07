@@ -16,7 +16,8 @@ source_files="$(
     for f in $source_files node_modules/pug-require/index.js; do
         diff -u "$f" vulnerable/"$f" || true
     done
-) > vulnerable.patch
+) | perl -pe 's/^((?:\+\+\+|---) .*)\t\d{4}-\d\d?-\d\d? \d\d?:\d\d?:\d\d?[.]\d+ [+\-]\d+$/$1\t2000-01-01 12:00:00.000000000 -0500/' \
+  > vulnerable.patch
 
 # This should match the same lines in build-vulnerable.sh
 hash_from="$(
