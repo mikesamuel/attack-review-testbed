@@ -37,17 +37,19 @@ const tLater = Number(new Date('2018-10-22 12:05:00Z'));
 // Views the index page with the new post.
 // Drafts a private post and commits it.
 // Views the index page with both posts.
-// TODO: Logs out.
-// TODO: Only sees the public post.
-// TODO: Logs in as a friend.
-// TODO: Sees both posts.
+// Logs out.
+// Only sees the public post.
+// Logs in as a friend.
+// Sees both posts.
+// Logs in as a non-friend.
+// Only sees the public post.
 
-function indexRelUrl(now) {
-  return `/?now=${ now }&offset=4`;
+function indexRelUrl(now, offset = 4) { // eslint-disable-line no-magic-numbers
+  return `/?now=${ now }&offset=${ encodeURIComponent(offset) }`;
 }
 
 module.exports = {
-  requests: (baseUrl, { root: projectRoot }) => {
+  requests: (baseUrl, { root: projectRoot, isVulnerable }) => {
     // Store map with randomly generated filenames so we can test stability over
     // multiple POSTS.
     let filenameMapFromUploadPost = null;
@@ -530,7 +532,7 @@ module.exports = {
         },
       },
       {
-        // View both posts as anonymous.
+        // View posts as anonymous.
         req: {
           uri: new URL(indexRelUrl(tLater), baseUrl).href,
         },
@@ -650,7 +652,7 @@ module.exports = {
             '<a class="nounder" href="/account">&#9660;</a>',
             '</span>',
             '<form class="lightweight"' +
-              ' action="/logout?cont=%2F%3Fnow%3D1540209900000%26offset%3D4" method="POST" name="logout">',
+              ` action="/logout?cont=%2F%3Fnow%3D${ tLater }%26offset%3D4" method="POST" name="logout">`,
             '<input name="_csrf" type="hidden" value="xxxx"/>',
             '<button class="logoutlink" type="submit">logout</button>',
             '</form>',
@@ -658,7 +660,7 @@ module.exports = {
             '<h1>Recent Posts</h1>',
             '<ol class="posts">',
             '<li>',
-            // Since offset is set, 1 post from canned data
+            // Since offset is set, one post from canned data.
             '<span class="author name">',
             '<a href="mailto:fae@fae.fae">',
             '<font color="green">Fae</font>',
@@ -727,7 +729,7 @@ module.exports = {
             '<a class="nounder" href="/account">&#9660;</a>',
             '</span>',
             '<form class="lightweight"' +
-              ' action="/logout?cont=%2F%3Fnow%3D1540209900000%26offset%3D4%26viewAsPublic%3Dtrue"' +
+              ` action="/logout?cont=%2F%3Fnow%3D${ tLater }%26offset%3D4%26viewAsPublic%3Dtrue"` +
               ' method="POST" name="logout">',
             '<input name="_csrf" type="hidden" value="xxxx"/>',
             '<button class="logoutlink" type="submit">logout</button>',
@@ -773,6 +775,157 @@ module.exports = {
           ],
           logs: {
             stdout: `GET ${ indexRelUrl(tLater) }&viewAsPublic=true\n`,
+          },
+        },
+        after(response, body, { uploads }) {
+          expect(Array.from(uploads.entries())).to.deep.equal(filenameMapFromUploadPost);
+        },
+      },
+      {
+        // logout so we can login as a different user
+        req: {
+          uri: `${ baseUrl.origin }/logout`,
+        },
+        res: {
+          body: 'IGNORE',
+          logs: {
+            stdout: 'GET /logout\n',
+          },
+          statusCode: 200,
+        },
+      },
+      {
+        req: (lastResponse, { csrf }) => ({
+          uri: `${ baseUrl.origin }/logout`,
+          method: 'POST',
+          form: {
+            cont: '/',
+            _csrf: csrf,
+          },
+        }),
+        res: {
+          body: [ '' ],
+          logs: {
+            stdout: 'POST /logout\n',
+          },
+          headers: {
+            location: `${ baseUrl.origin }/`,
+          },
+          statusCode: 302,
+        },
+      },
+      {
+        // Login as one of Ada's friends
+        req: {
+          uri: new URL('/login', baseUrl).href,
+        },
+        res: {
+          body: 'IGNORE',
+          logs: {
+            stderr: '',
+            stdout: 'GET /login\n',
+          },
+          statusCode: 200,
+        },
+      },
+      {
+        req: (lastResponse, { csrf }) => ({
+          uri: new URL('/login', baseUrl).href,
+          method: 'POST',
+          form: {
+            cont: '/post',
+            email: 'debtd@aol.com',
+            _csrf: csrf,
+          },
+        }),
+        res: {
+          body: [ '' ],
+          logs: {
+            stderr: '',
+            stdout: 'POST /login\n',
+          },
+          headers: {
+            location: new URL('/post', baseUrl).href,
+          },
+          statusCode: 302,
+        },
+      },
+      {
+        // View posts as Deb.
+        req: {
+          uri: new URL(indexRelUrl(tLater, 5), baseUrl).href, // eslint-disable-line no-magic-numbers
+        },
+        res: {
+          body: [
+            '<!DOCTYPE html>',
+            '<html>',
+            '<head>',
+            '<title>Attack Review Testbed</title>',
+            '<script src="/common.js" nonce="xxxx13">',
+            '</script>',
+            '<link rel="stylesheet" href="/styles.css" nonce="xxxx13">',
+            '</head>',
+            '<body>',
+            '<div class="userfloat">',
+            '<span class="user name">',
+            '<b>D</b>eb<a class="nounder" href="/account">&#9660;</a>',
+            '</span>',
+            `<form class="lightweight" action="/logout?cont=%2F%3Fnow%3D${ tLater }%26offset%3D5" ` +
+              'method="POST" name="logout">',
+            '<input name="_csrf" type="hidden" value="xxxx"/>',
+            '<button class="logoutlink" type="submit">logout</button>',
+            '</form>',
+            '</div>',
+            '<h1>Recent Posts</h1>',
+            '<ol class="posts">',
+            '<li>',
+            // Since offset is set, 1 post from canned data
+            '<span class="author name">',
+            '<a href="mailto:fae@fae.fae">',
+            '<font color="green">Fae</font>',
+            '</a>',
+            '</span>',
+            '<span class="created">a week ago</span>',
+            '<div class="body">(It is probably insecure)</div>',
+            '</li>',
+            // A private post from Deb's friend (frenemy?) Bob.
+            '<li>',
+            '<span class="author name">',
+            (
+              isVulnerable ?
+                '<a href="javascript:alert(1)">Bob</a>' :
+                '<a href="about:invalid#TrustedURL">Bob</a>'
+            ),
+            '</span>',
+            '<span class="created">a week ago</span>',
+            '<div class="body">You think?</div>',
+            '</li>',
+            // The public post
+            '<li>',
+            '<span class="author name">Ada</span>',
+            '<span class="created">5 minutes ago</span>',
+            '<div class="body">Hello, <b>World</b>! </div>',
+            '<div class="images">',
+            '<a class="usercontent" href="/user-uploads/00000000000000000000000000000000.png">',
+            '<img src="/user-uploads/00000000000000000000000000000000.png"/>',
+            '</a>',
+            '<a class="usercontent" href="/user-uploads/00000000000000000000000000000001.png">',
+            '<img src="/user-uploads/00000000000000000000000000000001.png"/>',
+            '</a>',
+            '</div>',
+            '</li>',
+            // No private post since Deb and Fae are not friends. :(
+            '</ol>',
+            '<div>',
+            '<a href="/post">',
+            '<button type="button">+ New Post</button>',
+            '</a>',
+            '</div>',
+            '</body>',
+            '</html>',
+          ],
+          logs: {
+            stdout: `GET ${ indexRelUrl(tLater, 5) }\n`, // eslint-disable-line no-magic-numbers
           },
         },
         after(response, body, { uploads }) {
