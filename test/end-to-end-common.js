@@ -108,7 +108,9 @@ module.exports = function runEndToEndCases(makeTestFunction, options) {
         };
       }
 
+      let requestIndex = -1;
       for (const { req, res, after } of requests(baseUrl, options)) {
+        ++requestIndex;
         const { body = [], statusCode = 200, logs: { stderr = '', stdout = '' }, headers = {} } =
           typeof res === 'function' ? res(lastResponse, lastDerived) : res;
         promise = new Promise((resolve, reject) => { // eslint-disable-line no-loop-func
@@ -131,6 +133,8 @@ module.exports = function runEndToEndCases(makeTestFunction, options) {
               if (lastResponse) {
                 augmentedRequest.headers.Cookie = cookiesForResponse(lastResponse);
               }
+
+              const debugContext = `${ file } request #${ requestIndex } of ${ augmentedRequest.uri }`;
 
               request(augmentedRequest, (exc, response, actualBody) => {
                 if (exc) {
@@ -172,7 +176,7 @@ module.exports = function runEndToEndCases(makeTestFunction, options) {
                 }
 
                 try {
-                  expect(got).to.deep.equal(want);
+                  expect(got).to.deep.equal(want, debugContext);
                   if (after) {
                     after(response, bodyLines, derived);
                   }
