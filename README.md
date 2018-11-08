@@ -436,7 +436,7 @@ You can then run `vulnerable/scripts/run-locally.js` to start up the
 modified server.
 
 The vulnerable server has most of the mitigations disabled, so you
-try an attack against the vulnerable server.  If it doesn't
+can try an attack against the vulnerable server.  If it doesn't
 work against the target server, then the difference between the two
 mitigated the attack.
 
