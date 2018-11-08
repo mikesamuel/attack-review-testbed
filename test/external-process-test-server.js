@@ -34,7 +34,11 @@ const shutdowns = [];
 process.on('SIGINT', () => {
   const failure = new Error('interrupted');
   for (const shutdown of shutdowns) {
-    shutdown(failure);
+    try {
+      shutdown(failure);
+    } catch (exc) {
+      console.error(exc); // eslint-disable-line no-console
+    }
   }
   shutdowns.length = 0;
 });
