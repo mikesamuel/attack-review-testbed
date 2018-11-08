@@ -1,0 +1,3 @@
+Contact: https://github.com/mikesamuel/attack-review-testbed#hdr-reporting-and-verifying-a-breach
+Acknowledgements: https://github.com/mikesamuel/attack-review-testbed/issues?q=is%3Aissue+tag%3Afull-breach
+Permission: https://github.com/mikesamuel/attack-review-testbed#do-not------------------------------
