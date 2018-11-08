@@ -2,7 +2,11 @@
 
 <!-- TOC -->
 *  [Background](#hdr-background)
-   *  [Setup](#hdr-setup)
+*  [Setup](#hdr-setup)
+   *  [Preqrequisites](#hdr-preqrequisites)
+      *  [Linux](#hdr-linux)
+      *  [MacOS](#hdr-macos)
+   *  [First run](#hdr-first-run)
 *  [File layout](#hdr-file-layout)
    *  [`./bin/node`](#hdr-bin-node-)
    *  [`main.js`](#hdr-main-js-)
@@ -72,7 +76,7 @@ strings from untrusted strings without explicit escaping.
 
 Thanks much for your time and attention, and happy hunting!
 
-### Setup                               <a name="hdr-setup"></a>
+## Setup                                <a name="hdr-setup"></a>
 
 <a name="fork"></a>
 
@@ -82,6 +86,29 @@ rules allow for making edits that a naive but well intentioned developer
 might make.  If so, `git clone` your fork instead.
 
 ![Arrow To Fork Button](./doc/images/arrow-to-fork-button.png)
+
+### Preqrequisites                      <a name="hdr-preqrequisites"></a>
+
+You will need on your `$PATH`
+
+* A modern version of `npm` (or `yarn`)
+* `postgres` >= 9.5 and helpers like `initdb`
+* `make` and a C++ build chain.
+
+#### Linux                              <a name="hdr-linux"></a>
+
+```sh
+apt-get install npm postgresql
+```
+
+#### MacOS                              <a name="hdr-macos"></a>
+
+```sh
+brew install node postgres@9.6
+```
+
+
+### First run                           <a name="hdr-first-run"></a>
 
 To fetch and build locally, run
 
