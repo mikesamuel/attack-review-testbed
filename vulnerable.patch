@@ -601,12 +601,6 @@
          // Thread through from crypto-csrf above to Pug automagic.
 --- main.js	2000-01-01 12:00:00.000000000 -0500
 +++ vulnerable/main.js	2000-01-01 12:00:00.000000000 -0500
-@@ -1,4 +1,4 @@
--#!/usr/bin/env ./bin/node --cjs-loader ./lib/framework/init-hooks.js --disallow_code_generation_from_strings
-+#!/usr/bin/env node
- 
- /**
-  * @license
 @@ -34,10 +34,10 @@
  
  const isMain = require.main === module;
@@ -658,6 +652,18 @@
  
  /**
   * @license
+@@ -216,10 +216,8 @@
+     ({ pgPort, pgSocksDir }) => {
+       // Run the server main file
+       const serverProcess = childProcess.spawn(
+-        path.join(rootDir, 'bin', 'node'),
++        path.join(rootDir, '..', 'bin', 'node'),
+         [ /* eslint-disable array-element-newline */
+-          '--cjs-loader', './lib/framework/init-hooks.js',
+-          '--disallow_code_generation_from_strings',
+           path.join(rootDir, 'main.js'),
+           ...(process.argv.slice(2)),
+         ], /* eslint-enable array-element-newline */
 --- node_modules/pug-require/index.js	2000-01-01 12:00:00.000000000 -0500
 +++ vulnerable/node_modules/pug-require/index.js	2000-01-01 12:00:00.000000000 -0500
 @@ -7,7 +7,7 @@

@@ -28,7 +28,7 @@ SOURCE_LIST_UP_TO_DATE=1 scripts/generate-production-source-list.js generated/pr
 if [[ "$TRAVIS" != "true" ]]; then
     # Sanity check the server by starting it, and then tell it to hangup.
     echo Starting server
-    ./main.js --noinitdb &
+    ./scripts/run-locally.js &
     main_pid="$!"
     # Spawn a fire-and-forget subprocess to stop the server from listening forever.
     (

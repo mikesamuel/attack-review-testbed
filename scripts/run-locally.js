@@ -216,8 +216,13 @@ if (require.main === module) {
     ({ pgPort, pgSocksDir }) => {
       // Run the server main file
       const serverProcess = childProcess.spawn(
-        path.join(rootDir, 'main.js'),
-        process.argv.slice(2),
+        path.join(rootDir, 'bin', 'node'),
+        [ /* eslint-disable array-element-newline */
+          '--cjs-loader', './lib/framework/init-hooks.js',
+          '--disallow_code_generation_from_strings',
+          path.join(rootDir, 'main.js'),
+          ...(process.argv.slice(2)),
+        ], /* eslint-enable array-element-newline */
         {
           shell: false,
           stdio: 'inherit',

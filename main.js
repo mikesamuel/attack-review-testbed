@@ -1,4 +1,4 @@
-#!/usr/bin/env ./bin/node --cjs-loader ./lib/framework/init-hooks.js --disallow_code_generation_from_strings
+#!/bin/echo Use scripts/run-locally.js instead of
 
 /**
  * @license
