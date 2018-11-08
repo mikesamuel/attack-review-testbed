@@ -38,6 +38,12 @@ else if you changed the target server, regenerate the vulnerable server thus:
         exit 1
     fi
     if [ -d vulnerable ]; then
+        rejects="$(find vulnerable -name \*.rej | wc -l)"
+        if (( $(find vulnerable -name \*.rej | wc -l) > 0 )); then
+            echo "Vulnerable server patching failed with rejected chunks"
+            find vulnerable -name \*.rej | perl -pe 's/^/\t* /'
+            exit 1
+        fi
         exit 0
     fi
 fi
