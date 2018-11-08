@@ -113,6 +113,9 @@ Database seeded with test data
 
 Browsing to http://localhost:8080/ will get you to the target app.
 
+After you've finished attacking, we'd appreciate it if you can
+fill out the [post-attack questionnaire][].
+
 
 ## File layout                          <a name="hdr-file-layout"></a>
 
@@ -544,3 +547,4 @@ This is not an official Google product.
 [full breach label]: https://github.com/mikesamuel/attack-review-testbed/labels/full-breach
 [partial breach label]: https://github.com/mikesamuel/attack-review-testbed/labels/partial-breach
 [twitter/mvsamuel]: https://twitter.com/messages/compose?recipient_id=80772555
+[post-attack questionnaire]: https://docs.google.com/forms/d/e/1FAIpQLSeRgRGeDq9pg0WPxvnfEEaFvnm6m4WUHZlyYNadArkPPV-now/viewform?usp=pp_url
