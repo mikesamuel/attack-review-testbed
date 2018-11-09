@@ -652,12 +652,23 @@
  
  /**
   * @license
-@@ -216,10 +216,8 @@
+@@ -212,14 +212,19 @@
+ 
+ 
+ if (require.main === module) {
++  let nodeExec = path.join(rootDir, '..', 'bin', 'node');
++  try {
++    nodeExec = x('which', 'node').replace(/\n$/, '');
++  } catch (exc) {
++    // Ok as long as we have a built node runtime
++  }
++
+   spinUpDatabase(
      ({ pgPort, pgSocksDir }) => {
        // Run the server main file
        const serverProcess = childProcess.spawn(
 -        path.join(rootDir, 'bin', 'node'),
-+        path.join(rootDir, '..', 'bin', 'node'),
++        nodeExec,
          [ /* eslint-disable array-element-newline */
 -          '--cjs-loader', './lib/framework/init-hooks.js',
 -          '--disallow_code_generation_from_strings',
