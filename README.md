@@ -128,7 +128,7 @@ If you've a healthy sense of paranoia, you can browse the
 
 If everything did not go smoothly, please try the [wiki][]
 which will provide troubleshooting advice and/or try the
-[support forum](#getting-answers-to-questions).
+[support forum](#hdr-getting-answers-to-questions).
 
 If everything went smoothly, you should see
 
@@ -145,9 +145,6 @@ fill out the [post-attack questionnaire][].
 
 
 ## File layout                          <a name="hdr-file-layout"></a>
-
-<details>
-  <summary>Subdirectories and key files.</summary>
 
 ### `./bin/node`                        <a name="hdr-bin-node-"></a>
 
@@ -245,8 +242,6 @@ A vulnerable variant of the server created by applying
 `vulnerable.patch` to the server source files.  This server has most
 of the mitigations disabled, so you can test attacks against it and
 then see if they still work against the target server.
-
-</details>
 
 ## What is a breach?                    <a name="hdr-what-is-a-breach-"></a>
 
@@ -346,7 +341,7 @@ a patch you may directly attack the security machinery under test:
 ### What else is a breach?              <a name="hdr-what-else-is-a-breach-"></a>
 
 If you have any questions about what is or is not in bounds, feel
-free to ask at the [support forum](#getting-answers-to-questions).
+free to ask at the [support forum](#hdr-getting-answers-to-questions).
 
 ## What is not a breach?                <a name="hdr-what-is-not-a-breach-"></a>
 
@@ -513,21 +508,17 @@ We focus on classes of attack related to the integrity of messages
 that cross process or network boundaries since many of these are often
 missed by good development practices like code review and unit-tests.
 
-<details>
-  <summary>Why focus on message integrity?</summary>
-
 1.  Some security relevant code is indistinguishable from application
     logic, e.g. access control logic.
 2.  Some is not, e.g. input parsers, and HTML templates.
 3.  Probabilistic arguments about distributions of inputs apply to
     (1); test coverage and code review give confidence in application
     logic correctness.
-4.  Attackers craft strings that target long chains of corner cases so
-    probabilistic arguments do not apply to (2).
-5.  We can best use scarce security engineering resources best by leaving (1) to
-    application developers and focusing on (2).
-
-</details>
+4.  Attackers craft strings that sequentially target corner cases so
+    probabilistic arguments do not apply to (2); test coverage and
+    code review alone are poor predictors of parser correctness.
+5.  We can best use scarce security engineering resources best by
+    leaving (1) to application developers and focusing on (2).
 
 If the target application largely resists attacks or would have with
 adjustments, then we can argue that it is easier to produce robust
