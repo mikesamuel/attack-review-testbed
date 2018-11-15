@@ -538,7 +538,7 @@ small kernel of critical configuration and source files.
 Post on the *\# attack-review* channel at
 https://nodejs-security-wg.slack.com/ if you're having trouble.
 
-We'll try to update the wiki in response to common questions.
+We'll try to update the [wiki][] in response to common questions.
 
 If you need a private channel:
 
