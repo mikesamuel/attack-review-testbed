@@ -85,7 +85,7 @@ module.exports = {
           '</a>',
           '</span>',
           '<span class="created">3 days ago</span>',
-          '<div class="body">Sigh!  Yet another <a href="//Facebook.com">Facebook.com</a>' +
+          '<div class="body">Sigh!  Yet another <a class="ext-link" href="//Facebook.com">Facebook.com</a>' +
             ' knockoff without any users.</div>',
           '</li>',
           '<li>',

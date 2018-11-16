@@ -30,21 +30,35 @@ describe('poorly-written-linkifier', () => {
   it('no links', () => {
     expect(linkify('Hello, World!')).to.equal('Hello, World!');
   });
-  it('url in tag', () => {
+  it('internal url in tag', () => {
     expect(linkify('Hello, <a href="http://example.com/world">World</a>!'))
       .to.equal('Hello, <a href="http://example.com/world">World</a>!');
   });
-  it('url outside tag', () => {
+  it('external url in tag', () => {
+    expect(linkify('Hello, <a href="http://other.com/world">World</a>!'))
+      .to.equal('Hello, <a href="http://other.com/world">World</a>!');
+  });
+  it('internal url outside tag', () => {
     expect(linkify('Hello, http://example.com/world!'))
       .to.equal('Hello, <a href="http://example.com/world">http://example.com/world</a>!');
   });
-  it('url missing scheme', () => {
+  it('external url outside tag', () => {
+    expect(linkify('Hello, http://other.com/world!'))
+      .to.equal('Hello, <a href="http://other.com/world" class="ext-link">http://other.com/world</a>!');
+  });
+  it('internal url missing scheme', () => {
     expect(linkify('Hello, example.com/world!'))
       .to.equal('Hello, <a href="//example.com/world">example.com/world</a>!');
   });
+  it('external url missing scheme', () => {
+    expect(linkify('Hello, other.org/world!'))
+      .to.equal('Hello, <a href="//other.org/world" class="ext-link">other.org/world</a>!');
+  });
   it('multiple', () => {
     expect(linkify('Go to <ul><li>foo.com or<li>bar.com</ul>'))
-      .to.equal('Go to <ul><li><a href="//foo.com">foo.com</a> or<li><a href="//bar.com">bar.com</a></ul>');
+      .to.equal(
+        'Go to <ul><li><a href="//foo.com" class="ext-link">foo.com</a> or' +
+        '<li><a href="//bar.com" class="ext-link">bar.com</a></ul>');
   });
   it('unfortunate', () => {
     // We want it to have a large attack surface.
