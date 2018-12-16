@@ -28,8 +28,8 @@
 -require('module-keys/cjs').polyfill(module, require);
 +//require('module-keys/cjs').polyfill(module, require);
  
--const { box, isPublicKey } = require.keys;
-+//const { box, isPublicKey } = require.keys;
+-const { box, isPublicKey } = require.moduleKeys;
++//const { box, isPublicKey } = require.moduleKeys;
  
 -const safesql = require('safesql');
 +//const safesql = require('safesql');
@@ -64,7 +64,7 @@
                (friendResults) => {
                  fclient.release();
                  const friendList = friendResults.rows.map(({ friend }) => friend);
--                resolve(require.keys.box(friendList, () => true));
+-                resolve(require.moduleKeys.box(friendList, () => true));
 +                resolve(friendList);
                },
                (exc) => {
@@ -129,8 +129,8 @@
      Promise.all([ database.connect(), friendsPromise ]).then(
 -      ([ client, friendsBox ]) => {
 -        // Avoid errors by double checking that the friend list came from getCurrentAccount.
--        const friends = require.keys.unbox(
--          friendsBox, (key) => key === require.keys.publicKey && key(), []);
+-        const friends = require.moduleKeys.unbox(
+-          friendsBox, (key) => key === require.moduleKeys.publicKey && key(), []);
 +      ([ client, friends ]) => {
  
          function releaseAndReject(exc) {
@@ -205,13 +205,13 @@
          td
            label(for= "realName") Real Name
          td
--          input(name="realName" value=require.keys.unbox(currentAccount.realName, () => true))
+-          input(name="realName" value=require.moduleKeys.unbox(currentAccount.realName, () => true))
 +          input(name="realName" value=currentAccount.realName)
        tr
          td
            label(for= "email") Email
          td
--          input(name="email" value=require.keys.unbox(currentAccount.email, () => true))
+-          input(name="email" value=require.moduleKeys.unbox(currentAccount.email, () => true))
 +          input(name="email" value=currentAccount.email)
      input(name="cont" type="hidden" value=cont)
    button(form="account" type="submit") Submit
@@ -333,9 +333,9 @@
                  function associateAccountWithSessionNonce(resultSet) {
                    if (resultSet.rowCount === 1) {
                      const [ { aid } ] = resultSet.rows;
--                    const sessionNonceValue = require.keys.unbox(sessionNonce, () => true);
+-                    const sessionNonceValue = require.moduleKeys.unbox(sessionNonce, () => true);
 -                    client.query(safesql.pg`UPDATE SESSIONS SET aid=${ aid } WHERE sessionnonce=${ sessionNonceValue }`)
-+                    //const sessionNonceValue = require.keys.unbox(sessionNonce, () => true);
++                    //const sessionNonceValue = require.moduleKeys.unbox(sessionNonce, () => true);
 +                    client.query(safesql.pg`UPDATE SESSIONS SET aid=${ aid } WHERE sessionnonce='${ sessionNonce }'`)
                        .then(
                          (updates) => {
@@ -380,8 +380,8 @@
      return;
    }
  
--  const sessionNonceValue = require.keys.unbox(sessionNonce, () => true);
-+  //const sessionNonceValue = require.keys.unbox(sessionNonce, () => true);
+-  const sessionNonceValue = require.moduleKeys.unbox(sessionNonce, () => true);
++  //const sessionNonceValue = require.moduleKeys.unbox(sessionNonce, () => true);
  
    database.connect().then(
      (client) => {
@@ -495,9 +495,9 @@
  const createDOMPurify = require('dompurify');
  const { JSDOM } = require('jsdom');
  
--const mintTrustedHTML = require.keys.unbox(
+-const mintTrustedHTML = require.moduleKeys.unbox(
 -  Mintable.minterFor(TrustedHTML), () => true, (x) => x);
-+//const mintTrustedHTML = require.keys.unbox(
++//const mintTrustedHTML = require.moduleKeys.unbox(
 +//  Mintable.minterFor(TrustedHTML), () => true, (x) => x);
  const { window } = (new JSDOM(''));
  const DOMPurify = createDOMPurify(window);
@@ -554,7 +554,7 @@
    require('./handlers/login.js').publicKey, require('./handlers/logout.js').publicKey,
 @@ -101,6 +102,7 @@
  function sessionNonceGuard(key) {
-   return require.keys.isPublicKey(key) && key() && sessionKeyWhitelist.has(key);
+   return require.moduleKeys.isPublicKey(key) && key() && sessionKeyWhitelist.has(key);
  }
 +*/
  
@@ -594,8 +594,8 @@
        },
        database,
        cspNonce,
--      sessionNonce: require.keys.box(sessionNonce, sessionNonceGuard),
-+      sessionNonce/*: require.keys.box(sessionNonce, sessionNonceGuard)*/,
+-      sessionNonce: require.moduleKeys.box(sessionNonce, sessionNonceGuard),
++      sessionNonce/*: require.moduleKeys.box(sessionNonce, sessionNonceGuard)*/,
        /* eslint-disable no-underscore-dangle */
        get _csrf() {
          // Thread through from crypto-csrf above to Pug automagic.
@@ -629,16 +629,16 @@
      "jsdom": "^12.2.0",
      "mime-types": "^2.1.20",
      "multiparty": "^4.2.1",
--    "node-sec-patterns": "^2.0.7",
+-    "node-sec-patterns": "^3.0.0",
      "pg": "^7.5.0",
      "pug": "^2.0.3",
-     "pug-require": "^1.0.14-alpha",
--    "safesql": "^1.0.7",
+     "pug-require": "^2.0.0",
+-    "safesql": "^2.0.0",
      "serve-static": "^1.13.2",
--    "sh-template-tag": "^3.0.7",
+-    "sh-template-tag": "^4.0.0",
      "tiny-relative-date": "^1.3.0",
 -    "tlds": "^1.203.1",
--    "web-contract-types": "^1.0.8"
+-    "web-contract-types": "^2.0.0"
 +    "tlds": "^1.203.1"
    },
    "devDependencies": {

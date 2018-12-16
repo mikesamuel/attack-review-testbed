@@ -371,7 +371,7 @@ index ef5b3fe4c3..699498cd26 100644
    var require = internalModule.makeRequireFunction(this);
 +
 +  var keys = modulekeys.makeModuleKeys(this.id);
-+  require.keys = keys;
++  require.moduleKeys = keys;
 +  defineProperties(
 +    this.exports,
 +    {

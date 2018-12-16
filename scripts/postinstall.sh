@@ -45,7 +45,7 @@ if [[ "true" != "$TRAVIS" ]]; then
     [ -x "$PROJECT_ROOT/bin/node" ]
 
     # Sanity check our patched version of node.
-    [[ "true" == "$("$PROJECT_ROOT/bin/node" -e 'console.log(typeof require.keys.publicKey === `function`)')" ]]
+    [[ "true" == "$("$PROJECT_ROOT/bin/node" -e 'console.log(typeof require.moduleKeys.publicKey === `function`)')" ]]
 fi
 
 # Apply some other patches to workaround issues.
