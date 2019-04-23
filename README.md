@@ -9,6 +9,8 @@
    *  [First run](#hdr-first-run)
 *  [File layout](#hdr-file-layout)
    *  [`./bin/node`](#hdr-bin-node-)
+   *  [`./bin/npm`](#hdr-bin-npm-)
+   *  [`scripts/`](#hdr-scripts-)
    *  [`main.js`](#hdr-main-js-)
    *  [`package.json`](#hdr-package-json-)
    *  [`static/*`](#hdr-static-)
@@ -153,11 +155,20 @@ fill out the [post-attack questionnaire][].
 ## File layout                          <a name="hdr-file-layout"></a>
 
 ### `./bin/node`                        <a name="hdr-bin-node-"></a>
+### `./bin/npm`                         <a name="hdr-bin-npm-"></a>
 
-A patched node runtime that provides hooks used by the security
-machinery that I hope you will attack.
+A patched node runtime and bundled npm that provide hooks used by the
+security machinery that I hope you will attack.
 
 You can find the patch at `./bin/node.d/node.patch`.
+
+### `scripts/`                          <a name="hdr-scripts-"></a>
+
+Various scripts used by hooks and other command line tools.
+
+`bin/npm start` and `bin/npm run start:vuln` should spin up a server
+so you probably won't need these directly unless you make extensive
+edits to the demo app.
 
 ### `main.js`                           <a name="hdr-main-js-"></a>
 
