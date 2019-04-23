@@ -21,7 +21,7 @@
 
 const { URL } = require('url');
 
-const now = Number(new Date('2018-10-22 12:00:00Z'));
+const now = Number(new Date('2019-04-22 12:00:00Z'));
 
 // Logs in
 // Drafts a post

@@ -26,8 +26,8 @@ const path = require('path');
 const { URL } = require('url');
 const { expect } = require('chai');
 
-const tEarly = Number(new Date('2018-10-22 12:00:00Z'));
-const tLater = Number(new Date('2018-10-22 12:05:00Z'));
+const tEarly = Number(new Date('2019-04-22 12:00:00Z'));
+const tLater = Number(new Date('2019-04-22 12:05:00Z'));
 
 // Logs in
 // Drafts a public post

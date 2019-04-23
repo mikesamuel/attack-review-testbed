@@ -21,7 +21,7 @@
 
 const { URL } = require('url');
 
-const now = Number(new Date('2018-10-12 12:00:00Z'));
+const now = Number(new Date('2019-04-12 12:00:00Z'));
 const homePagePath = `/?now=${ now }`;
 
 module.exports = {
