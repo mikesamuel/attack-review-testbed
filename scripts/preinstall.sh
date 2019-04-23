@@ -41,19 +41,24 @@ if [[ "true" != "$TRAVIS" ]]; then
         )
 
         cp "$NODE_BUILD_DIR"/node "$PROJECT_ROOT"/bin/
-
-        # Pack npm
-        pushd "$NODE_BUILD_DIR/deps/npm"
-        NPM_TARBALL="$(bin/npm-cli.js pack | tail -1)"
-        popd
     fi
 
     [ -x "$PROJECT_ROOT/bin/node" ]
 
     if ! [ -x "$PROJECT_ROOT/bin/npm" ]; then
+        rm -f "$PROJECT_ROOT"/bin/npm
+
+        # Pack npm
+        pushd "$NODE_BUILD_DIR/deps/npm"
+        npm install
+        bin/npm-cli.js install
+        NPM_TARBALL="$(bin/npm-cli.js pack | tail -1)"
+        popd
+
+        [ -n "$NPM_TARBALL" ]
+
         # Install an NPM that uses the built node locally.
         "$NODE_BUILD_DIR/deps/npm/bin/npm-cli.js" install --no-save "$NODE_BUILD_DIR/deps/npm/$NPM_TARBALL"
-        rm -f bin/npm
         ln -s "$PROJECT_ROOT/node_modules/.bin/npm" bin/npm
     fi
 
