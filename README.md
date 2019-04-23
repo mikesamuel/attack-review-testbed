@@ -52,14 +52,13 @@ does and does not constitute a successful breach.
 
 *Slow Setup Ahead*: The target application is meant to be run locally
 on a machine you control.
-The [`npm install` invocation](#npminstalling) under **Setup** below
-builds a patched `node` runtime from source, which takes over 11
-minutes on an under-powered Mac laptop, so it may be worth starting
-that running while you read the rest of this document.
+[**Setup**](#setup) below builds a patched `node` runtime from
+source, which takes over several minutes, so it may be worth starting
+that running while you browse this document.
 
 The target is a simple social-networking web application that lets
-users post updates.  ["Setup"](#setup) explains how to get it up and
-running.  ["What is a breach"](#what-is-a-breach) and "What is not a
+users post updates.  ["Setup"](#hdr-first-run) explains how to get it up
+and running.  ["What is a breach"](#what-is-a-breach) and "What is not a
 breach" explain what constitutes a successful attack.  Later, there
 are logistical notes on how to contribute breaches or report other
 issues.  The final section discussion explains how this effort fits
@@ -112,19 +111,23 @@ brew install node postgres@9.6
 
 To fetch and build locally, run
 
-<a name="npminstalling"></a>
-
 ```sh
+# Checkout the code from Github.  OR USE YOUR FORK HERE
 git clone https://github.com/mikesamuel/attack-review-testbed.git
 cd attack-review-testbed
-npm install
-npm test
-./scripts/run-locally.js
+
+scripts/preinstall.sh             # Builds patched node and npm.  SLOOOW
+export PATH="$PWD"/bin:"$PATH"    # Use locally built node and npm
+
+npm install                       # Fetch dependencies
+npm test                          # Run tests to generate files
+
+npm start                         # Start a demo server
 ```
 
 Doing so will not run any git hooks, but does run some npm install hooks.
 If you've a healthy sense of paranoia, you can browse the
-[hook code][postinstall hook].
+[hook][preinstall hook] [code][postinstall hook].
 
 If everything did not go smoothly, please try the [wiki][]
 which will provide troubleshooting advice and/or try the
@@ -139,6 +142,9 @@ Database seeded with test data
 ```
 
 Browsing to http://localhost:8080/ will get you to the target app.
+
+You can also run the [vulnerable](#hdr-vulnerable) server via
+`npm run start:vuln`.
 
 After you've finished attacking, we'd appreciate it if you can
 fill out the [post-attack questionnaire][].
@@ -551,6 +557,7 @@ If you need a private channel:
 This is not an official Google product.
 
 [wiki]: https://github.com/mikesamuel/attack-review-testbed/wiki/
+[preinstall hook]: https://github.com/mikesamuel/attack-review-testbed/blob/master/scripts/preinstall.sh
 [postinstall hook]: https://github.com/mikesamuel/attack-review-testbed/blob/master/scripts/postinstall.sh
 [XSS]: https://www.owasp.org/index.php/Cross-site_Scripting_(XSS)#Description
 [ACE]: https://nodesecroadmap.fyi/chapter-1/threat-RCE.html

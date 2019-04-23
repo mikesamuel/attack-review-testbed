@@ -4,6 +4,8 @@
   "description": "A testbed for github.com/nodejs/security-wg/issues/409",
   "main": "main.js",
   "scripts": {
+    "start": "scripts/run-locally.js",
+    "start:vuln": "vulnerable/scripts/run-locally.js",
     "cover": "istanbul cover _mocha",
     "coveralls": "npm run cover -- --report lcovonly && cat ./coverage/lcov.info | coveralls",
     "license": "scripts/license-check.sh",

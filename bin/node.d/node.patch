@@ -1,50 +1,131 @@
-diff --git a/deps/v8/src/bootstrapper.cc b/deps/v8/src/bootstrapper.cc
-index a864789a03..637f33905b 100644
---- a/deps/v8/src/bootstrapper.cc
-+++ b/deps/v8/src/bootstrapper.cc
-@@ -5214,6 +5214,11 @@ Genesis::Genesis(
-     if (!InstallDebuggerNatives()) return;
-   }
- 
-+  if (FLAG_disallow_code_generation_from_strings) {
-+    native_context()->set_allow_code_gen_from_strings(
-+        isolate->heap()->false_value());
-+  }
-+
-   ConfigureUtilsObject(context_type);
- 
-   // Check that the script context table is empty except for the 'this' binding.
-diff --git a/deps/v8/src/flag-definitions.h b/deps/v8/src/flag-definitions.h
-index a801b221aa..6adb6ade8c 100644
---- a/deps/v8/src/flag-definitions.h
-+++ b/deps/v8/src/flag-definitions.h
-@@ -753,6 +753,8 @@ DEFINE_BOOL(expose_trigger_failure, false, "expose trigger-failure extension")
- DEFINE_INT(stack_trace_limit, 10, "number of stack frames to capture")
- DEFINE_BOOL(builtins_in_stack_traces, false,
-             "show built-in functions in stack traces")
-+DEFINE_BOOL(disallow_code_generation_from_strings, false,
-+            "disallow eval and friends")
- 
- // builtins.cc
- DEFINE_BOOL(allow_unsafe_function_constructor, false,
-diff --git a/lib/internal/module.js b/lib/internal/module.js
-index e19b11c7a7..dcd1a9257c 100644
---- a/lib/internal/module.js
-+++ b/lib/internal/module.js
-@@ -84,9 +84,10 @@ function stripShebang(content) {
+diff --git a/lib/internal/modules/cjs/helpers.js b/lib/internal/modules/cjs/helpers.js
+index df727ff3c8..b54300fb29 100644
+--- a/lib/internal/modules/cjs/helpers.js
++++ b/lib/internal/modules/cjs/helpers.js
+@@ -72,10 +72,10 @@ function stripShebang(content) {
  
  const builtinLibs = [
    'assert', 'async_hooks', 'buffer', 'child_process', 'cluster', 'crypto',
--  'dgram', 'dns', 'domain', 'events', 'fs', 'http', 'https', 'net',
+-  'dgram', 'dns', 'domain', 'events', 'fs', 'http', 'http2', 'https', 'net',
 -  'os', 'path', 'perf_hooks', 'punycode', 'querystring', 'readline', 'repl',
--  'stream', 'string_decoder', 'tls', 'tty', 'url', 'util', 'v8', 'vm', 'zlib'
-+  'dgram', 'dns', 'domain', 'events', 'fs', 'http', 'https', 'module-keys',
-+  'net', 'os', 'path', 'perf_hooks', 'punycode', 'querystring', 'readline',
-+  'repl', 'stream', 'string_decoder', 'tls', 'tty', 'url', 'util', 'v8', 'vm',
-+  'zlib'
+-  'stream', 'string_decoder', 'tls', 'trace_events', 'tty', 'url', 'util',
+-  'v8', 'vm', 'worker_threads', 'zlib'
++  'dgram', 'dns', 'domain', 'events', 'fs', 'http', 'http2', 'https',
++  'module-keys', 'net', 'os', 'path', 'perf_hooks', 'punycode', 'querystring',
++  'readline', 'repl', 'stream', 'string_decoder', 'tls', 'trace_events', 'tty',
++  'url', 'util', 'v8', 'vm', 'worker_threads', 'zlib'
  ];
  
- const { exposeHTTP2 } = process.binding('config');
+ if (typeof internalBinding('inspector').open === 'function') {
+diff --git a/lib/internal/modules/cjs/loader.js b/lib/internal/modules/cjs/loader.js
+index de97f03dd4..e5ed56c9e8 100644
+--- a/lib/internal/modules/cjs/loader.js
++++ b/lib/internal/modules/cjs/loader.js
+@@ -61,6 +61,10 @@ let asyncESM;
+ let ModuleJob;
+ let createDynamicModule;
+ 
++const modulekeys = require('module-keys');
++const { apply } = Reflect;
++const { defineProperties, hasOwnProperty } = Object;
++
+ const {
+   CHAR_UPPERCASE_A,
+   CHAR_LOWERCASE_A,
+@@ -709,6 +713,7 @@ Module.prototype.load = function(filename) {
+   }
+ };
+ 
++let requireModuleHook;
+ 
+ // Loads a module at the given file path. Returns that module's
+ // `exports` property.
+@@ -718,6 +723,27 @@ Module.prototype.require = function(id) {
+     throw new ERR_INVALID_ARG_VALUE('id', id,
+                                     'must be a non-empty string');
+   }
++
++  if (requireModuleHook === undefined) {  // On first module load.
++    requireModuleHook = null;  // Do not invoke bootstrap to find the hook.
++    var hookid = getOptionValue('--cjs-loader');
++    if (hookid && typeof hookid === 'string') {
++      var hook = this.require(hookid);
++      if (typeof hook === 'function') {
++        requireModuleHook = hook;
++      }
++    }
++  }
++
++  if (typeof requireModuleHook === 'function') {
++    id = requireModuleHook(
++      this.filename, this.id, id,
++      (req, opts) => Module._resolveFilename(req, this, false, opts));
++
++    assert(id, 'missing id from hook');
++    assert(typeof id === 'string', 'id from hook must be a string');
++  }
++
+   requireDepth++;
+   try {
+     return Module._load(id, this, /* isMain */ false);
+@@ -804,8 +830,28 @@ Module.prototype._compile = function(content, filename) {
+   }
+   const dirname = path.dirname(filename);
+   const require = makeRequireFunction(this);
++
++  var keys = modulekeys.makeModuleKeys(this.id);
++  require.moduleKeys = keys;
++  defineProperties(
++    this.exports,
++    {
++      publicKey: {
++        value: keys.publicKey,
++        writable: true,
++        configurable: true
++        // Not enumerable for backwards compatibility
++      },
++      [modulekeys.publicKeySymbol]: {
++        value: keys.publicKey,
++        writable: true,
++        configurable: true
++        // Not enumerable for backwards compatibility
++      },
++    });
++
+   var result;
+-  const exports = this.exports;
++  let exports = this.exports;
+   const thisValue = exports;
+   const module = this;
+   if (requireDepth === 0) statCache = new Map();
+@@ -817,6 +863,27 @@ Module.prototype._compile = function(content, filename) {
+                                   filename, dirname);
+   }
+   if (requireDepth === 0) statCache = null;
++  exports = this.exports;
++  if (exports &&
++      (typeof exports === 'object' || typeof exports === 'function')) {
++    function addKeyBack(keyKey) {
++      if (!apply(hasOwnProperty, exports, [ keyKey ])) {
++        try {
++          defineProperties(
++            exports,
++            {
++              [keyKey]: {
++                value: keys.publicKey
++              }
++            });
++        } catch (exc) {
++          // ok if exports are frozen
++        }
++      }
++    }
++    addKeyBack('publicKey');
++    addKeyBack(modulekeys.publicKeySymbol);
++  }
+   return result;
+ };
+ 
 diff --git a/lib/module-keys.js b/lib/module-keys.js
 new file mode 100644
 index 0000000000..07b2356150
@@ -315,116 +396,11 @@ index 0000000000..07b2356150
 +  delete module[propertyName];
 +  defineProperty(module, propertyName, tamperProofDescriptor);
 +}
-diff --git a/lib/module.js b/lib/module.js
-index ef5b3fe4c3..699498cd26 100644
---- a/lib/module.js
-+++ b/lib/module.js
-@@ -44,6 +44,10 @@ const ModuleJob = require('internal/loader/ModuleJob');
- const { createDynamicModule } = require('internal/loader/ModuleWrap');
- let ESMLoader;
- 
-+const modulekeys = require('module-keys');
-+const { apply } = Reflect;
-+const { defineProperties, hasOwnProperty } = Object;
-+
- function stat(filename) {
-   filename = path._makeLong(filename);
-   const cache = stat.cache;
-@@ -571,11 +575,34 @@ Module.prototype.load = function(filename) {
- };
- 
- 
-+var requireModuleHook;
-+
- // Loads a module at the given file path. Returns that module's
- // `exports` property.
- Module.prototype.require = function(path) {
-   assert(path, 'missing path');
-   assert(typeof path === 'string', 'path must be a string');
-+
-+  if (requireModuleHook === undefined) {  // On first module load.
-+    requireModuleHook = null;  // Do not invoke bootstrap to find the hook.
-+    var hookid = process.binding('config').cjsUserLoader;
-+    if (hookid && typeof hookid === 'string') {
-+      var hook = this.require(hookid);
-+      if (typeof hook === 'function') {
-+        requireModuleHook = hook;
-+      }
-+    }
-+  }
-+
-+  if (typeof requireModuleHook === 'function') {
-+    path = requireModuleHook(
-+      this.filename, this.id, path,
-+      (req, opts) => Module._resolveFilename(req, this, false, opts));
-+
-+    assert(path, 'missing path from hook');
-+    assert(typeof path === 'string', 'path from hook must be a string');
-+  }
-+
-   return Module._load(path, this, /* isMain */ false);
- };
- 
-@@ -625,6 +652,26 @@ Module.prototype._compile = function(content, filename) {
-   }
-   var dirname = path.dirname(filename);
-   var require = internalModule.makeRequireFunction(this);
-+
-+  var keys = modulekeys.makeModuleKeys(this.id);
-+  require.moduleKeys = keys;
-+  defineProperties(
-+    this.exports,
-+    {
-+      publicKey: {
-+        value: keys.publicKey,
-+        writable: true,
-+        configurable: true
-+        // Not enumerable for backwards compatibility
-+      },
-+      [modulekeys.publicKeySymbol]: {
-+        value: keys.publicKey,
-+        writable: true,
-+        configurable: true
-+        // Not enumerable for backwards compatibility
-+      },
-+    });
-+
-   var depth = internalModule.requireDepth;
-   if (depth === 0) stat.cache = new Map();
-   var result;
-@@ -636,6 +683,27 @@ Module.prototype._compile = function(content, filename) {
-                                   filename, dirname);
-   }
-   if (depth === 0) stat.cache = null;
-+  var exports = this.exports;
-+  if (exports &&
-+      (typeof exports === 'object' || typeof exports === 'function')) {
-+    function addKeyBack(keyKey) {
-+      if (!apply(hasOwnProperty, exports, [ keyKey ])) {
-+        try {
-+          defineProperties(
-+            exports,
-+            {
-+              [keyKey]: {
-+                value: keys.publicKey
-+              }
-+            });
-+        } catch (exc) {
-+          // ok if exports are frozen
-+        }
-+      }
-+    }
-+    addKeyBack('publicKey');
-+    addKeyBack(modulekeys.publicKeySymbol);
-+  }
-   return result;
- };
- 
 diff --git a/node.gyp b/node.gyp
-index acaf822ea8..ac602f6e1f 100644
+index f6d8d8c6cb..ab5c4cec0c 100644
 --- a/node.gyp
 +++ b/node.gyp
-@@ -35,6 +35,7 @@
+@@ -47,6 +47,7 @@
        'lib/dns.js',
        'lib/domain.js',
        'lib/events.js',
@@ -432,88 +408,30 @@ index acaf822ea8..ac602f6e1f 100644
        'lib/fs.js',
        'lib/http.js',
        'lib/http2.js',
-diff --git a/src/node.cc b/src/node.cc
-index e6e3e02c98..11dfb1d15d 100644
---- a/src/node.cc
-+++ b/src/node.cc
-@@ -234,6 +234,11 @@ bool config_experimental_modules = false;
- // that is used by lib/internal/bootstrap_node.js
- std::string config_userland_loader;  // NOLINT(runtime/string)
+diff --git a/src/node_options.cc b/src/node_options.cc
+index 16880ecda9..467aa8234b 100644
+--- a/src/node_options.cc
++++ b/src/node_options.cc
+@@ -246,6 +246,10 @@ EnvironmentOptionsParser::EnvironmentOptionsParser() {
+             "custom loader",
+             &EnvironmentOptions::userland_loader,
+             kAllowedInEnvironment);
++  AddOption("--cjs-loader",
++            "use the specified file as a custom loader for required modules",
++            &EnvironmentOptions::cjs_userland_loader,
++            kAllowedInEnvironment);
+   AddOption("--no-deprecation",
+             "silence deprecation warnings",
+             &EnvironmentOptions::no_deprecation,
+diff --git a/src/node_options.h b/src/node_options.h
+index 441b8a43c6..934168adaa 100644
+--- a/src/node_options.h
++++ b/src/node_options.h
+@@ -126,6 +126,7 @@ class EnvironmentOptions : public Options {
+   bool trace_sync_io = false;
+   bool trace_warnings = false;
+   std::string userland_loader;
++  std::string cjs_userland_loader;
  
-+// Set in node.cc by ParseArgs when --cjs-loader is used.
-+// Used in node_config.cc to set a constant on process.binding('config')
-+// that is used by lib/internal/bootstrap/node.js
-+std::string config_cjs_userland_loader;  // NOLINT(runtime/string)
-+
- // Set by ParseArgs when --pending-deprecation or NODE_PENDING_DEPRECATION
- // is used.
- bool config_pending_deprecation = false;
-@@ -3993,6 +3998,7 @@ static void CheckIfAllowedInEnv(const char* exe, bool is_env,
-     "--napi-modules",
-     "--expose-http2",
-     "--experimental-modules",
-+    "--cjs-loader",
-     "--loader",
-     "--trace-warnings",
-     "--redirect-warnings",
-@@ -4159,7 +4165,7 @@ static void ParseArgs(int* argc,
-       config_preserve_symlinks = true;
-     } else if (strcmp(arg, "--experimental-modules") == 0) {
-       config_experimental_modules = true;
--    }  else if (strcmp(arg, "--loader") == 0) {
-+    } else if (strcmp(arg, "--loader") == 0) {
-       const char* module = argv[index + 1];
-       if (!config_experimental_modules) {
-         fprintf(stderr, "%s: %s requires --experimental-modules be enabled\n",
-@@ -4172,6 +4178,14 @@ static void ParseArgs(int* argc,
-       }
-       args_consumed += 1;
-       config_userland_loader = module;
-+    } else if (strcmp(arg, "--cjs-loader") == 0) {
-+      const char* module = argv[index + 1];
-+      if (module == nullptr) {
-+        fprintf(stderr, "%s: %s requires an argument\n", argv[0], arg);
-+        exit(9);
-+      }
-+      args_consumed += 1;
-+      config_cjs_userland_loader = module;
-     } else if (strcmp(arg, "--prof-process") == 0) {
-       prof_process = true;
-       short_circuit = true;
-diff --git a/src/node_config.cc b/src/node_config.cc
-index a11faaefec..410e94b525 100644
---- a/src/node_config.cc
-+++ b/src/node_config.cc
-@@ -78,6 +78,16 @@ static void InitConfig(Local<Object> target,
-     }
-   }
- 
-+  if (!config_cjs_userland_loader.empty()) {
-+    target->DefineOwnProperty(
-+        context,
-+        FIXED_ONE_BYTE_STRING(isolate, "cjsUserLoader"),
-+        String::NewFromUtf8(isolate,
-+                            config_cjs_userland_loader.data(),
-+                            v8::NewStringType::kNormal).ToLocalChecked(),
-+        ReadOnly).FromJust();
-+  }
-+
-   if (config_pending_deprecation)
-     READONLY_BOOLEAN_PROPERTY("pendingDeprecation");
- 
-diff --git a/src/node_internals.h b/src/node_internals.h
-index e2e81d61e3..6b7cf5539c 100644
---- a/src/node_internals.h
-+++ b/src/node_internals.h
-@@ -81,6 +81,11 @@ extern bool config_experimental_modules;
- // that is used by lib/internal/bootstrap_node.js
- extern std::string config_userland_loader;
- 
-+// Set in node.cc by ParseArgs when --cjs-loader is used.
-+// Used in node_config.cc to set a constant on process.binding('config')
-+// that is used by lib/internal/bootstrap/node.js
-+extern std::string config_cjs_userland_loader;
-+
- // Set in node.cc by ParseArgs when --expose-internals or --expose_internals is
- // used.
- // Used in node_config.cc to set a constant on process.binding('config')
+   bool syntax_check_only = false;
+   bool has_eval_string = false;

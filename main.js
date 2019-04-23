@@ -1,4 +1,4 @@
-#!/bin/echo Use scripts/run-locally.js instead of
+#!/bin/echo Use scripts/run-locally.js or npm start instead
 
 /**
  * @license

@@ -1,6 +1,7 @@
 # Application specific generated files
 # node binary generated at postinstall time
 /bin/node
+/bin/npm
 /generated
 # Patched clone of node git repo
 /bin/node.d/node
